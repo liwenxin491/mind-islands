@@ -17,6 +17,13 @@ app.use(cookieParser());
 const PORT = Number(process.env.PORT || 8787);
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const IS_PRODUCTION = NODE_ENV === 'production';
+const LOCAL_OFFLINE_MODE = process.env.LOCAL_OFFLINE === 'true' && !IS_PRODUCTION;
+const COOKIE_SECURE =
+  process.env.COOKIE_SECURE === 'true'
+    ? true
+    : process.env.COOKIE_SECURE === 'false'
+      ? false
+      : NODE_ENV === 'production';
 const DATABASE_URL = process.env.DATABASE_URL || '';
 const JWT_SECRET = process.env.JWT_SECRET || '';
 const AUTH_COOKIE_NAME = 'mind_islands_auth';
@@ -38,7 +45,7 @@ const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const authCookieOptions = {
   httpOnly: true,
   sameSite: 'lax',
-  secure: NODE_ENV === 'production',
+  secure: COOKIE_SECURE,
   path: '/',
   maxAge: AUTH_COOKIE_TTL_MS,
 };
@@ -54,6 +61,7 @@ const normalizeEmail = (value = '') => String(value || '').trim().toLowerCase();
 const normalizeUsername = (value = '') => String(value || '').trim();
 
 const validateRuntimeConfig = () => {
+  if (LOCAL_OFFLINE_MODE) return;
   if (!IS_PRODUCTION) return;
   const missing = [];
   if (!DATABASE_URL) missing.push('DATABASE_URL');
@@ -75,6 +83,7 @@ const checkDatabaseConnection = async () => {
 };
 
 const requireAuthConfig = (res) => {
+  if (LOCAL_OFFLINE_MODE) return true;
   if (!dbPool) {
     res.status(503).json({ error: 'database_not_configured' });
     return false;
@@ -119,6 +128,16 @@ const readAuthToken = (req) => {
 };
 
 const requireAuth = async (req, res, next) => {
+  if (LOCAL_OFFLINE_MODE) {
+    req.authUser = {
+      id: 'local-offline',
+      username: 'Local User',
+      email: 'offline@localhost',
+      createdAt: '',
+    };
+    return next();
+  }
+
   if (!requireAuthConfig(res)) return;
   const token = readAuthToken(req);
   if (!token) return res.status(401).json({ error: 'unauthorized' });
@@ -1163,6 +1182,8 @@ app.get('/api/health', async (_req, res) => {
     hasDb: Boolean(dbPool),
     hasJwtSecret: Boolean(JWT_SECRET),
     dbReachable,
+    localOfflineMode: LOCAL_OFFLINE_MODE,
+    cookieSecure: COOKIE_SECURE,
   });
 });
 

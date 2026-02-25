@@ -22,6 +22,13 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+const OFFLINE_MODE = import.meta.env.VITE_LOCAL_OFFLINE === 'true';
+const OFFLINE_USER: AuthUser = {
+  id: 'local-offline',
+  username: 'Local User',
+  email: 'offline@localhost',
+  createdAt: '',
+};
 
 const parseErrorMessage = (errorCode = 'unknown_error') => {
   const map: Record<string, string> = {
@@ -43,6 +50,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [setupError, setSetupError] = useState<string | null>(null);
 
   const refresh = async () => {
+    if (OFFLINE_MODE) {
+      setUser(OFFLINE_USER);
+      setSetupError(null);
+      return;
+    }
+
     try {
       const response = await fetch('/api/auth/me');
       if (response.status === 401) {
@@ -68,6 +81,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     const boot = async () => {
       setLoading(true);
+      if (OFFLINE_MODE) {
+        if (!cancelled) {
+          setUser(OFFLINE_USER);
+          setSetupError(null);
+          setLoading(false);
+        }
+        return;
+      }
       await refresh();
       if (!cancelled) setLoading(false);
     };
@@ -78,6 +99,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
+    if (OFFLINE_MODE) {
+      setUser(OFFLINE_USER);
+      setSetupError(null);
+      return { ok: true };
+    }
+
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -97,6 +124,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (username: string, email: string, password: string) => {
+    if (OFFLINE_MODE) {
+      setUser({
+        ...OFFLINE_USER,
+        username: username.trim() || OFFLINE_USER.username,
+        email: email.trim() || OFFLINE_USER.email,
+      });
+      setSetupError(null);
+      return { ok: true };
+    }
+
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
@@ -116,6 +153,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
+    if (OFFLINE_MODE) {
+      setUser(OFFLINE_USER);
+      setSetupError(null);
+      return;
+    }
+
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
     } catch {
@@ -148,4 +191,3 @@ export function useAuth() {
   }
   return context;
 }
-

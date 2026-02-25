@@ -623,6 +623,7 @@ const mergeRoutineSettings = (parsedRoutine: any): RoutineSettings => {
 
 const LEGACY_STORAGE_KEY = 'mindIslandsProgress';
 const userStorageKey = (userId: string) => `mindIslandsProgress:${userId}`;
+const OFFLINE_MODE = import.meta.env.VITE_LOCAL_OFFLINE === 'true';
 
 const hydrateProgress = (input: any): UserProgress => {
   if (!input || typeof input !== 'object') return defaultProgress;
@@ -676,6 +677,27 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     const load = async () => {
+      if (OFFLINE_MODE) {
+        const cached =
+          localStorage.getItem(LEGACY_STORAGE_KEY) ||
+          localStorage.getItem(userStorageKey('local-offline'));
+        let hydrated: UserProgress | null = null;
+        if (cached) {
+          try {
+            hydrated = hydrateProgress(JSON.parse(cached));
+          } catch {
+            hydrated = null;
+          }
+        }
+
+        if (cancelled) return;
+        const next = hydrated || defaultProgress;
+        setProgress(next);
+        lastSyncedJsonRef.current = JSON.stringify(next);
+        setCloudLoaded(true);
+        return;
+      }
+
       if (!user) {
         setProgress(defaultProgress);
         setCloudLoaded(false);
@@ -726,11 +748,19 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   useEffect(() => {
+    if (OFFLINE_MODE) {
+      if (!cloudLoaded) return;
+      const payload = JSON.stringify(progress);
+      localStorage.setItem(LEGACY_STORAGE_KEY, payload);
+      localStorage.setItem(userStorageKey('local-offline'), payload);
+      return;
+    }
     if (!user || !cloudLoaded) return;
     localStorage.setItem(userStorageKey(user.id), JSON.stringify(progress));
   }, [progress, user, cloudLoaded]);
 
   useEffect(() => {
+    if (OFFLINE_MODE) return;
     if (!user || !cloudLoaded) return;
     const nextJson = JSON.stringify(progress);
     if (nextJson === lastSyncedJsonRef.current) return;

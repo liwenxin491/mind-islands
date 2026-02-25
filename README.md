@@ -117,6 +117,10 @@ Based on:
 4. Open the printed URL (typically `http://localhost:5173` or `http://localhost:5174`)
 5. Register an account, sign in, and use Mind Islands with cloud-synced progress
 
+Local offline mode (no login, localStorage only):
+- Start: `npm run dev:offline`
+- This keeps a separate local testing flow and does not require database/auth availability.
+
 Production run:
 - Build frontend: `npm run build`
 - Start production server: `npm start`

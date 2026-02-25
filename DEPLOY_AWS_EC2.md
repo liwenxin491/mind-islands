@@ -50,6 +50,7 @@ Run this command on your Mac (not inside EC2):
 rsync -avz --delete \
   --exclude node_modules \
   --exclude dist \
+  --exclude .env.local \
   --exclude .git \
   --exclude .DS_Store \
   -e "ssh -i ~/Desktop/Wendy-Li-Key-Pair.pem" \
@@ -74,9 +75,12 @@ GEMINI_API_KEY=your_real_key
 GEMINI_MODEL=gemini-2.5-flash
 PORT=8787
 NODE_ENV=production
+COOKIE_SECURE=false
 DATABASE_URL=postgresql://<db_user>:<db_password>@<rds_endpoint>:5432/<db_name>
 JWT_SECRET=<long_random_secret_32+chars>
 ```
+
+When HTTPS is enabled, change `COOKIE_SECURE=true`.
 
 Then install + build:
 
@@ -158,6 +162,7 @@ On your Mac:
 rsync -avz --delete \
   --exclude node_modules \
   --exclude dist \
+  --exclude .env.local \
   --exclude .git \
   --exclude .DS_Store \
   -e "ssh -i ~/Desktop/Wendy-Li-Key-Pair.pem" \
