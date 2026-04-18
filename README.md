@@ -108,22 +108,17 @@ Based on:
 
 ## 🚀 Getting Started
 
-1. Install dependencies: `npm install`
-2. Configure environment in `.env.local` (see `.env.example`):
-   - `GEMINI_API_KEY`
-   - `DATABASE_URL` (PostgreSQL/RDS)
-   - `JWT_SECRET`
-   - SMTP settings for email verification:
-     - `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`
-     - `SMTP_USER`, `SMTP_PASS`
-     - `EMAIL_FROM`
-3. Start app + local API together: `npm run dev`
-4. Open the printed URL (typically `http://localhost:5173` or `http://localhost:5174`)
-5. Register an account, sign in, and use Mind Islands with cloud-synced progress
+For day-to-day setup, local development, and teammate onboarding, start here:
 
-Local offline mode (no login, localStorage only):
-- Start: `npm run dev:offline`
-- This keeps a separate local testing flow and does not require database/auth availability.
+- [Friend Onboarding](./FRIEND_ONBOARDING.md)
+- [Contributing Guide](./CONTRIBUTING.md)
+
+Quick version:
+
+1. Install dependencies: `npm install`
+2. For UI work, run: `npm run dev:offline`
+3. For full local app mode, create `.env.local` from `.env.example` and run: `npm run dev`
+4. Before pushing, run: `npm run build`
 
 Production run:
 - Build frontend: `npm run build`
@@ -182,7 +177,7 @@ See [DESIGN_SYSTEM.md](/DESIGN_SYSTEM.md) for comprehensive design guidelines, c
 
 ## 🤝 Contributing
 
-This is a personal project focused on emotional wellbeing and self-care. Contributions should align with the core philosophy of warmth, kindness, and support.
+This project is collaborative now. Please use the workflow in [CONTRIBUTING.md](./CONTRIBUTING.md) so `main` stays stable and easy to deploy.
 
 ## 📜 License
 
