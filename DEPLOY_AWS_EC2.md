@@ -78,6 +78,12 @@ NODE_ENV=production
 COOKIE_SECURE=false
 DATABASE_URL=postgresql://<db_user>:<db_password>@<rds_endpoint>:5432/<db_name>
 JWT_SECRET=<long_random_secret_32+chars>
+SMTP_HOST=<smtp_host>
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=<smtp_username>
+SMTP_PASS=<smtp_password>
+EMAIL_FROM=Mind Islands <no-reply@your-domain.com>
 ```
 
 When HTTPS is enabled, change `COOKIE_SECURE=true`.

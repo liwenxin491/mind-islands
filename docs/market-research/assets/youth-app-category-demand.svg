@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="680" viewBox="0 0 1100 680" role="img" aria-labelledby="title desc">
+  <title id="title">Behavioral health app categories used by young people</title>
+  <desc id="desc">Most common app categories used by 14 to 22 year olds for mental health or well-being support.</desc>
+  <rect width="1100" height="680" fill="#f6fbff" />
+  <rect x="70" y="60" width="960" height="560" rx="24" fill="#ffffff" stroke="#d8e8f5" />
+
+  <text x="110" y="125" fill="#102a43" font-size="34" font-family="Arial, Helvetica, sans-serif" font-weight="700">
+    What Young Users Already Use
+  </text>
+  <text x="110" y="160" fill="#486581" font-size="20" font-family="Arial, Helvetica, sans-serif">
+    Share of U.S. respondents age 14-22 who have used these app types for mental health or well-being
+  </text>
+
+  <g font-family="Arial, Helvetica, sans-serif" font-size="20" fill="#1f2937">
+    <text x="110" y="255">Sleep</text>
+    <text x="110" y="325">Meditation / Mindfulness</text>
+    <text x="110" y="395">Happiness</text>
+    <text x="110" y="465">Stress Reduction</text>
+    <text x="110" y="535">Mood Tracking</text>
+  </g>
+
+  <g>
+    <rect x="360" y="228" width="527" height="34" rx="17" fill="#d6ecff" />
+    <rect x="360" y="298" width="493" height="34" rx="17" fill="#9bd2ff" />
+    <rect x="360" y="368" width="425" height="34" rx="17" fill="#72c1ff" />
+    <rect x="360" y="438" width="374" height="34" rx="17" fill="#47a9f5" />
+    <rect x="360" y="508" width="340" height="34" rx="17" fill="#2680c2" />
+  </g>
+
+  <g font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#102a43">
+    <text x="905" y="252">31%</text>
+    <text x="871" y="322">29%</text>
+    <text x="803" y="392">25%</text>
+    <text x="752" y="462">22%</text>
+    <text x="718" y="532">20%</text>
+  </g>
+
+  <text x="110" y="590" fill="#486581" font-size="18" font-family="Arial, Helvetica, sans-serif">
+    Source: Hopelab and Common Sense Media, nationwide survey fielded Oct.-Nov. 2023, published 2024.
+  </text>
+</svg>

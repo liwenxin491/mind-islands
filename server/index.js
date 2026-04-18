@@ -1,8 +1,10 @@
 import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
 import cookieParser from 'cookie-parser';
+import crypto from 'crypto';
 import express from 'express';
 import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
 import path from 'path';
 import pg from 'pg';
 import { fileURLToPath } from 'url';
@@ -28,8 +30,22 @@ const DATABASE_URL = process.env.DATABASE_URL || '';
 const JWT_SECRET = process.env.JWT_SECRET || '';
 const AUTH_COOKIE_NAME = 'mind_islands_auth';
 const AUTH_COOKIE_TTL_MS = 1000 * 60 * 60 * 24 * 14;
+const VERIFICATION_CODE_TTL_MS = 1000 * 60 * 10;
+const VERIFICATION_RESEND_COOLDOWN_MS = 1000 * 60;
+const VERIFICATION_MAX_ATTEMPTS = 8;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const SMTP_HOST = process.env.SMTP_HOST || '';
+const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
+const SMTP_SECURE =
+  process.env.SMTP_SECURE === 'true'
+    ? true
+    : process.env.SMTP_SECURE === 'false'
+      ? false
+      : SMTP_PORT === 465;
+const SMTP_USER = process.env.SMTP_USER || '';
+const SMTP_PASS = process.env.SMTP_PASS || '';
+const EMAIL_FROM = process.env.EMAIL_FROM || '';
 const ISLAND_TYPES = ['body', 'work', 'learning', 'relationships', 'curiosity', 'compassion'];
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,6 +55,18 @@ const dbPool = DATABASE_URL
   ? new Pool({
       connectionString: DATABASE_URL,
       ssl: NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
+    })
+  : null;
+const hasEmailConfig = Boolean(SMTP_HOST && SMTP_PORT && SMTP_USER && SMTP_PASS && EMAIL_FROM);
+const emailTransporter = hasEmailConfig
+  ? nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: SMTP_SECURE,
+      auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASS,
+      },
     })
   : null;
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -59,6 +87,43 @@ const toSafeUser = (row) => ({
 
 const normalizeEmail = (value = '') => String(value || '').trim().toLowerCase();
 const normalizeUsername = (value = '') => String(value || '').trim();
+const isValidEmail = (value = '') => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+const buildVerificationHash = (email = '', code = '') =>
+  crypto.createHash('sha256').update(`${email}|${code}|${JWT_SECRET || 'mind-islands'}`).digest('hex');
+const generateVerificationCode = () => String(crypto.randomInt(100000, 1000000));
+const timingSafeEqualString = (left = '', right = '') => {
+  const leftBuffer = Buffer.from(String(left || ''), 'utf8');
+  const rightBuffer = Buffer.from(String(right || ''), 'utf8');
+  if (leftBuffer.length !== rightBuffer.length) return false;
+  return crypto.timingSafeEqual(leftBuffer, rightBuffer);
+};
+
+const sendVerificationEmail = async ({ email, username = '', code = '' }) => {
+  if (!emailTransporter) {
+    if (!IS_PRODUCTION) {
+      // eslint-disable-next-line no-console
+      console.log(`[auth] verification code for ${email}: ${code}`);
+      return;
+    }
+    throw new Error('email_service_not_configured');
+  }
+
+  const displayName = username || 'there';
+  await emailTransporter.sendMail({
+    from: EMAIL_FROM,
+    to: email,
+    subject: 'Mind Islands verification code',
+    text: `Hi ${displayName}, your Mind Islands verification code is ${code}. It expires in 10 minutes.`,
+    html: `
+      <div style="font-family:Arial,Helvetica,sans-serif;line-height:1.6;color:#1f1f1f">
+        <p>Hi ${displayName},</p>
+        <p>Your Mind Islands verification code is:</p>
+        <p style="font-size:24px;font-weight:700;letter-spacing:2px;">${code}</p>
+        <p>This code expires in 10 minutes.</p>
+      </div>
+    `,
+  });
+};
 
 const validateRuntimeConfig = () => {
   if (LOCAL_OFFLINE_MODE) return;
@@ -82,12 +147,18 @@ const checkDatabaseConnection = async () => {
   }
 };
 
-const requireAuthConfig = (res) => {
-  if (LOCAL_OFFLINE_MODE) return true;
+const requireDatabaseConfig = (res, options = {}) => {
+  const { allowOffline = true } = options;
+  if (allowOffline && LOCAL_OFFLINE_MODE) return true;
   if (!dbPool) {
     res.status(503).json({ error: 'database_not_configured' });
     return false;
   }
+  return true;
+};
+
+const requireAuthConfig = (res) => {
+  if (!requireDatabaseConfig(res)) return false;
   if (!JWT_SECRET) {
     res.status(503).json({ error: 'jwt_secret_not_configured' });
     return false;
@@ -195,6 +266,24 @@ const runDatabaseMigrations = async () => {
       state_json JSONB NOT NULL,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+  `);
+
+  await dbPool.query(`
+    CREATE TABLE IF NOT EXISTS email_verifications (
+      email VARCHAR(255) PRIMARY KEY,
+      code_hash TEXT NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      attempts_remaining INT NOT NULL DEFAULT ${VERIFICATION_MAX_ATTEMPTS},
+      sent_count INT NOT NULL DEFAULT 1,
+      last_sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  await dbPool.query(`
+    CREATE INDEX IF NOT EXISTS idx_email_verifications_expires_at
+    ON email_verifications (expires_at);
   `);
 };
 
@@ -1034,7 +1123,79 @@ Rules:
 `.trim();
 };
 
+app.post('/api/auth/send-verification-code', async (req, res) => {
+  try {
+    if (!requireDatabaseConfig(res, { allowOffline: false })) return;
+
+    const email = normalizeEmail(req.body?.email);
+    const username = normalizeUsername(req.body?.username);
+    if (!email || !isValidEmail(email)) {
+      return res.status(400).json({ error: 'invalid_email' });
+    }
+
+    const existingUser = await dbPool.query('SELECT id FROM users WHERE email = $1 LIMIT 1', [email]);
+    if (existingUser.rowCount > 0) {
+      return res.status(409).json({ error: 'email_already_registered' });
+    }
+
+    const previous = await dbPool.query(
+      'SELECT last_sent_at FROM email_verifications WHERE email = $1 LIMIT 1',
+      [email],
+    );
+    if (previous.rowCount > 0) {
+      const elapsed = Date.now() - new Date(previous.rows[0].last_sent_at).getTime();
+      if (elapsed < VERIFICATION_RESEND_COOLDOWN_MS) {
+        const retryAfterSec = Math.ceil((VERIFICATION_RESEND_COOLDOWN_MS - elapsed) / 1000);
+        return res.status(429).json({
+          error: 'verification_code_too_frequent',
+          retryAfterSec,
+        });
+      }
+    }
+
+    const code = generateVerificationCode();
+    const codeHash = buildVerificationHash(email, code);
+    const expiresAt = new Date(Date.now() + VERIFICATION_CODE_TTL_MS);
+
+    await dbPool.query(
+      `
+      INSERT INTO email_verifications (
+        email, code_hash, expires_at, attempts_remaining, sent_count, last_sent_at, updated_at
+      )
+      VALUES ($1, $2, $3, $4, 1, NOW(), NOW())
+      ON CONFLICT (email)
+      DO UPDATE SET
+        code_hash = EXCLUDED.code_hash,
+        expires_at = EXCLUDED.expires_at,
+        attempts_remaining = EXCLUDED.attempts_remaining,
+        sent_count = email_verifications.sent_count + 1,
+        last_sent_at = NOW(),
+        updated_at = NOW()
+      `,
+      [email, codeHash, expiresAt.toISOString(), VERIFICATION_MAX_ATTEMPTS],
+    );
+
+    await sendVerificationEmail({ email, username, code });
+    return res.json({
+      ok: true,
+      expiresInSec: Math.floor(VERIFICATION_CODE_TTL_MS / 1000),
+      resendAfterSec: Math.floor(VERIFICATION_RESEND_COOLDOWN_MS / 1000),
+      ...(IS_PRODUCTION ? {} : !emailTransporter ? { devCode: code } : {}),
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message === 'email_service_not_configured') {
+      return res.status(503).json({ error: 'email_service_not_configured' });
+    }
+    return res.status(500).json({
+      error: 'send_verification_code_failed',
+      details: message,
+    });
+  }
+});
+
 app.post('/api/auth/register', async (req, res) => {
+  let client = null;
   try {
     if (!requireAuthConfig(res)) return;
 
@@ -1045,23 +1206,27 @@ app.post('/api/auth/register', async (req, res) => {
     if (!username || username.length < 2 || username.length > 32) {
       return res.status(400).json({ error: 'invalid_username' });
     }
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!email || !isValidEmail(email)) {
       return res.status(400).json({ error: 'invalid_email' });
     }
     if (!password || password.length < 8 || password.length > 128) {
       return res.status(400).json({ error: 'invalid_password' });
     }
 
-    const existing = await dbPool.query(
+    client = await dbPool.connect();
+    await client.query('BEGIN');
+
+    const existing = await client.query(
       'SELECT id FROM users WHERE username = $1 OR email = $2 LIMIT 1',
       [username, email],
     );
     if (existing.rowCount > 0) {
+      await client.query('ROLLBACK');
       return res.status(409).json({ error: 'user_already_exists' });
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
-    const created = await dbPool.query(
+    const created = await client.query(
       `
       INSERT INTO users (username, email, password_hash)
       VALUES ($1, $2, $3)
@@ -1069,15 +1234,26 @@ app.post('/api/auth/register', async (req, res) => {
       `,
       [username, email, passwordHash],
     );
+    await client.query('COMMIT');
+
     const user = toSafeUser(created.rows[0]);
     const token = signAuthToken(user);
     setAuthCookie(res, token);
     return res.status(201).json({ user });
   } catch (error) {
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+      } catch {
+        // ignore rollback errors
+      }
+    }
     return res.status(500).json({
       error: 'register_failed',
       details: error instanceof Error ? error.message : String(error),
     });
+  } finally {
+    if (client) client.release();
   }
 });
 

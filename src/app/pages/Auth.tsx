@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -14,6 +14,10 @@ export function AuthPage() {
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    setError('');
+  }, [mode]);
 
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -35,7 +39,9 @@ export function AuthPage() {
       <div className="w-full max-w-md bg-background/10 border border-white/10 backdrop-blur-md rounded-2xl p-6 md:p-8">
         <h1 className="text-2xl font-semibold mb-2">{t('Mind Islands', '心灵群岛')}</h1>
         <p className="text-sm text-muted-foreground mb-6">
-          {t('Sign in to access your personal cloud space.', '登录后进入你的专属云端空间。')}
+          {mode === 'login'
+            ? t('Sign in to access your personal cloud space.', '登录后进入你的专属云端空间。')
+            : t('Create an account with your email and password.', '使用邮箱和密码创建账户。')}
         </p>
 
         {setupError && (
@@ -80,7 +86,6 @@ export function AuthPage() {
               minLength={8}
             />
           </div>
-
           {error && <div className="text-sm text-red-300">{error}</div>}
 
           <Button
@@ -100,7 +105,10 @@ export function AuthPage() {
           {mode === 'login' ? (
             <button
               className="underline underline-offset-2"
-              onClick={() => setMode('register')}
+              onClick={() => {
+                setMode('register');
+                setError('');
+              }}
               type="button"
             >
               {t("Don't have an account? Register", '还没有账户？去注册')}
@@ -108,7 +116,10 @@ export function AuthPage() {
           ) : (
             <button
               className="underline underline-offset-2"
-              onClick={() => setMode('login')}
+              onClick={() => {
+                setMode('login');
+                setError('');
+              }}
               type="button"
             >
               {t('Already have an account? Sign in', '已有账户？去登录')}
@@ -119,4 +130,3 @@ export function AuthPage() {
     </div>
   );
 }
-

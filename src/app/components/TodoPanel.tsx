@@ -8,9 +8,10 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Checkbox } from './ui/checkbox';
 
-export function TodoPanel() {
+export function TodoPanel({ variant = 'sidebar' }: { variant?: 'sidebar' | 'overlay' }) {
   const { t } = useLanguage();
   const { progress, addTodo, updateTodo, setTodoImportance, toggleTodo, deleteTodo } = useMindIslands();
+  const isOverlay = variant === 'overlay';
   const [isAdding, setIsAdding] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [editingTodoId, setEditingTodoId] = useState<string | null>(null);
@@ -104,9 +105,19 @@ export function TodoPanel() {
   };
 
   const priorityStyle = (label: 'high' | 'medium' | 'low') => {
-    if (label === 'high') return 'bg-red-500/20 text-red-200 border-red-400/40';
-    if (label === 'medium') return 'bg-amber-500/20 text-amber-200 border-amber-400/40';
-    return 'bg-emerald-500/20 text-emerald-200 border-emerald-400/40';
+    if (label === 'high') {
+      return isOverlay
+        ? 'bg-red-50 text-red-700 border-red-300'
+        : 'bg-red-500/20 text-red-200 border-red-400/40';
+    }
+    if (label === 'medium') {
+      return isOverlay
+        ? 'bg-amber-50 text-amber-700 border-amber-300'
+        : 'bg-amber-500/20 text-amber-200 border-amber-400/40';
+    }
+    return isOverlay
+      ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+      : 'bg-emerald-500/20 text-emerald-200 border-emerald-400/40';
   };
   const priorityLabelText = (label: 'high' | 'medium' | 'low') => {
     if (label === 'high') return t('high', '高');
@@ -114,18 +125,31 @@ export function TodoPanel() {
     return t('low', '低');
   };
 
+  const shellClass =
+    variant === 'overlay'
+      ? 'h-full overflow-y-auto hide-scrollbar px-2 py-2'
+      : 'w-80 h-full overflow-y-auto hide-scrollbar border-l border-border bg-card/60 p-6 backdrop-blur-xl';
+
+  const itemClass =
+    variant === 'overlay'
+      ? 'group rounded-[24px] bg-[rgba(249,252,253,0.94)] p-4 shadow-[0_10px_24px_rgba(20,52,64,0.1)] transition-colors hover:bg-[rgba(252,253,254,0.98)]'
+      : 'group rounded-lg bg-muted/30 p-3 transition-colors hover:bg-muted/50';
+
+  const archivedItemClass =
+    variant === 'overlay'
+      ? 'group flex items-start gap-3 rounded-[20px] bg-[rgba(243,247,249,0.86)] p-4'
+      : 'group flex items-start gap-3 rounded-lg bg-muted/20 p-3';
+
   return (
-    <div
-      className="w-80 h-full bg-card/60 backdrop-blur-xl border-l border-border p-6 overflow-y-auto"
-    >
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-medium text-foreground">{t('To-Do List', '待办列表')}</h2>
+    <div className={shellClass}>
+      <div className={`mb-5 flex items-center justify-between ${isOverlay ? 'pt-1' : ''}`}>
+        {!isOverlay && <h2 className="text-xl font-medium text-foreground">{t('To-Do List', '待办列表')}</h2>}
         <div className="flex items-center gap-1">
           <Button
             size="sm"
             variant="ghost"
             onClick={() => setShowArchived((prev) => !prev)}
-            className="hover:bg-secondary/20"
+            className={isOverlay ? 'text-slate-600 hover:bg-white/30' : 'hover:bg-secondary/20'}
             title={showArchived ? t('Hide archived tasks', '隐藏已归档任务') : t('Show archived tasks', '显示已归档任务')}
           >
             {showArchived ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
@@ -135,7 +159,7 @@ export function TodoPanel() {
             size="sm"
             variant="ghost"
             onClick={() => setIsAdding(!isAdding)}
-            className="hover:bg-primary/20"
+            className={isOverlay ? 'text-slate-600 hover:bg-white/30' : 'hover:bg-primary/20'}
           >
             {isAdding ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
           </Button>
@@ -150,33 +174,33 @@ export function TodoPanel() {
             exit={{ opacity: 0, height: 0 }}
             className="mb-4"
           >
-            <div className="space-y-2">
+            <div className={`space-y-2 ${isOverlay ? 'rounded-[24px] bg-[rgba(241,247,249,0.86)] p-4 shadow-[0_8px_20px_rgba(20,52,64,0.08)]' : ''}`}>
               <Input
                 value={newTodoText}
                 onChange={(e) => setNewTodoText(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddTodo()}
                 placeholder={t('Add a new task...', '添加新任务...')}
-                className="bg-input-background border-border/50 text-foreground placeholder:text-muted-foreground"
+                className={isOverlay ? 'border-slate-200/70 bg-white/90 text-slate-700 placeholder:text-slate-400' : 'bg-input-background border-border/50 text-foreground placeholder:text-muted-foreground'}
                 autoFocus
               />
               <Input
                 value={newTodoDetails}
                 onChange={(e) => setNewTodoDetails(e.target.value)}
                 placeholder={t('Details (optional)', '详情（可选）')}
-                className="bg-input-background border-border/50 text-foreground placeholder:text-muted-foreground"
+                className={isOverlay ? 'border-slate-200/70 bg-white/90 text-slate-700 placeholder:text-slate-400' : 'bg-input-background border-border/50 text-foreground placeholder:text-muted-foreground'}
               />
               <div className="grid grid-cols-2 gap-2">
                 <Input
                   type="datetime-local"
                   value={newTodoDeadline}
                   onChange={(e) => setNewTodoDeadline(e.target.value)}
-                  className="bg-input-background border-border/50 text-foreground"
+                  className={isOverlay ? 'border-slate-200/70 bg-white/90 text-slate-700' : 'bg-input-background border-border/50 text-foreground'}
                 />
                 <Input
                   type="datetime-local"
                   value={newTodoRemindAt}
                   onChange={(e) => setNewTodoRemindAt(e.target.value)}
-                  className="bg-input-background border-border/50 text-foreground"
+                  className={isOverlay ? 'border-slate-200/70 bg-white/90 text-slate-700' : 'bg-input-background border-border/50 text-foreground'}
                 />
               </div>
               <Input
@@ -186,7 +210,7 @@ export function TodoPanel() {
                 value={newTodoEstimateMinutes}
                 onChange={(e) => setNewTodoEstimateMinutes(e.target.value)}
                 placeholder={t('Estimated effort (minutes)', '预计耗时（分钟）')}
-                className="bg-input-background border-border/50 text-foreground placeholder:text-muted-foreground"
+                className={isOverlay ? 'border-slate-200/70 bg-white/90 text-slate-700 placeholder:text-slate-400' : 'bg-input-background border-border/50 text-foreground placeholder:text-muted-foreground'}
               />
               <Input
                 type="number"
@@ -196,12 +220,12 @@ export function TodoPanel() {
                 value={newTodoImportance}
                 onChange={(e) => setNewTodoImportance(e.target.value)}
                 placeholder={t('Importance (1-5, optional)', '重要程度（1-5，可选）')}
-                className="bg-input-background border-border/50 text-foreground placeholder:text-muted-foreground"
+                className={isOverlay ? 'border-slate-200/70 bg-white/90 text-slate-700 placeholder:text-slate-400' : 'bg-input-background border-border/50 text-foreground placeholder:text-muted-foreground'}
               />
               <Button
                 size="sm"
                 onClick={handleAddTodo}
-                className="w-full bg-primary hover:bg-primary/80 text-primary-foreground"
+                className={isOverlay ? 'w-full bg-[#6b98a2] text-white hover:bg-[#5a8791]' : 'w-full bg-primary hover:bg-primary/80 text-primary-foreground'}
               >
                 {t('Add', '添加')}
               </Button>
@@ -216,7 +240,7 @@ export function TodoPanel() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-center py-12 text-muted-foreground"
+              className={isOverlay ? 'py-12 text-center text-slate-500' : 'text-center py-12 text-muted-foreground'}
             >
               <p className="text-sm">{t('No active tasks', '暂无进行中的任务')}</p>
               <p className="text-xs mt-2">{t('Completed tasks are archived automatically', '已完成任务会自动归档')}</p>
@@ -229,7 +253,7 @@ export function TodoPanel() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ delay: index * 0.05 }}
-                className="group rounded-lg bg-muted/30 p-3 transition-colors hover:bg-muted/50"
+                className={itemClass}
                 onDoubleClick={() => startEditTodo(todo.id)}
                 title={t('Double-click to edit', '双击可编辑')}
               >
@@ -238,27 +262,27 @@ export function TodoPanel() {
                     <Input
                       value={editTodoText}
                       onChange={(e) => setEditTodoText(e.target.value)}
-                      className="bg-input-background border-border/50 text-foreground"
+                      className={isOverlay ? 'border-slate-200/70 bg-white/90 text-slate-700' : 'bg-input-background border-border/50 text-foreground'}
                       autoFocus
                     />
                     <Input
                       value={editTodoDetails}
                       onChange={(e) => setEditTodoDetails(e.target.value)}
                       placeholder={t('Details', '详情')}
-                      className="bg-input-background border-border/50 text-foreground placeholder:text-muted-foreground"
+                      className={isOverlay ? 'border-slate-200/70 bg-white/90 text-slate-700 placeholder:text-slate-400' : 'bg-input-background border-border/50 text-foreground placeholder:text-muted-foreground'}
                     />
                     <div className="grid grid-cols-2 gap-2">
                       <Input
                         type="datetime-local"
                         value={editTodoDeadline}
                         onChange={(e) => setEditTodoDeadline(e.target.value)}
-                        className="bg-input-background border-border/50 text-foreground"
+                        className={isOverlay ? 'border-slate-200/70 bg-white/90 text-slate-700' : 'bg-input-background border-border/50 text-foreground'}
                       />
                       <Input
                         type="datetime-local"
                         value={editTodoRemindAt}
                         onChange={(e) => setEditTodoRemindAt(e.target.value)}
-                        className="bg-input-background border-border/50 text-foreground"
+                        className={isOverlay ? 'border-slate-200/70 bg-white/90 text-slate-700' : 'bg-input-background border-border/50 text-foreground'}
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
@@ -269,7 +293,7 @@ export function TodoPanel() {
                         value={editTodoEstimateMinutes}
                         onChange={(e) => setEditTodoEstimateMinutes(e.target.value)}
                         placeholder={t('Est. minutes', '预计分钟')}
-                        className="bg-input-background border-border/50 text-foreground placeholder:text-muted-foreground"
+                        className={isOverlay ? 'border-slate-200/70 bg-white/90 text-slate-700 placeholder:text-slate-400' : 'bg-input-background border-border/50 text-foreground placeholder:text-muted-foreground'}
                       />
                       <Input
                         type="number"
@@ -279,7 +303,7 @@ export function TodoPanel() {
                         value={editTodoImportance}
                         onChange={(e) => setEditTodoImportance(e.target.value)}
                         placeholder={t('Importance 1-5', '重要程度 1-5')}
-                        className="bg-input-background border-border/50 text-foreground placeholder:text-muted-foreground"
+                        className={isOverlay ? 'border-slate-200/70 bg-white/90 text-slate-700 placeholder:text-slate-400' : 'bg-input-background border-border/50 text-foreground placeholder:text-muted-foreground'}
                       />
                     </div>
                     <div className="flex gap-2 pt-1">
@@ -305,62 +329,70 @@ export function TodoPanel() {
                     <Checkbox
                       checked={todo.completed}
                       onCheckedChange={() => toggleTodo(todo.id)}
-                      className="mt-1"
+                      className={`mt-1 ${isOverlay ? 'border-slate-400 bg-white shadow-none data-[state=checked]:border-[#6b98a2] data-[state=checked]:bg-[#6b98a2]' : ''}`}
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="mb-1 flex items-center gap-2">
+                      <div className="mb-2 flex items-center gap-2">
                         <span
-                          className={`rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wide ${priorityStyle(todo.priorityLabel)}`}
+                          className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${priorityStyle(todo.priorityLabel)}`}
                         >
                           {priorityLabelText(todo.priorityLabel)} · {todo.priorityScore}
                         </span>
                       </div>
                       <p
                         className={`text-sm ${
-                          todo.completed ? 'line-through text-muted-foreground' : 'text-foreground'
+                          todo.completed
+                            ? 'line-through text-slate-400'
+                            : isOverlay
+                              ? 'text-slate-700'
+                              : 'text-foreground'
                         }`}
                       >
                         {todo.text}
                       </p>
                       {todo.details && (
-                        <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                        <div className={`mt-2 flex items-center gap-1 text-xs ${isOverlay ? 'text-slate-600' : 'text-muted-foreground'}`}>
                           <FileText className="w-3 h-3" />
                           <span className="truncate">{todo.details}</span>
                         </div>
                       )}
                       {todo.estimatedMinutes && (
-                        <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                        <div className={`mt-2 flex items-center gap-1 text-xs ${isOverlay ? 'text-slate-600' : 'text-muted-foreground'}`}>
                           <Clock3 className="w-3 h-3" />
                           {t('Est.', '预计')} {todo.estimatedMinutes} {t('min', '分钟')}
                         </div>
                       )}
                       {todo.deadline && (
-                        <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                        <div className={`mt-2 flex items-center gap-1 text-xs ${isOverlay ? 'text-slate-600' : 'text-muted-foreground'}`}>
                           <Calendar className="w-3 h-3" />
                           {formatDate24(todo.deadline)} {formatTime24(todo.deadline)}
                         </div>
                       )}
                       {todo.remindAt && (
-                        <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                        <div className={`mt-2 flex items-center gap-1 text-xs ${isOverlay ? 'text-slate-600' : 'text-muted-foreground'}`}>
                           <Bell className="w-3 h-3" />
                           {t('Reminder', '提醒')} {formatDate24(todo.remindAt)} {formatTime24(todo.remindAt)}
                         </div>
                       )}
                       {todo.priorityReason && (
-                        <div className="mt-1 text-[11px] text-muted-foreground">
+                        <div className={`mt-2 text-[12px] font-medium ${isOverlay ? 'text-slate-700' : 'text-muted-foreground'}`}>
                           {todo.priorityReason}
                         </div>
                       )}
-                      <div className="mt-2 flex items-center gap-1">
-                        <span className="text-[11px] text-muted-foreground">{t('Importance:', '重要程度：')}</span>
+                      <div className="mt-3 flex items-center gap-2">
+                        <span className={`text-[12px] font-medium ${isOverlay ? 'text-slate-700' : 'text-muted-foreground'}`}>{t('Importance:', '重要程度：')}</span>
                         {[1, 2, 3, 4, 5].map((level) => (
                           <button
                             key={level}
                             onClick={() => setTodoImportance(todo.id, level)}
-                            className={`h-6 w-6 rounded-full border text-[11px] transition-colors ${
+                            className={`h-10 w-10 rounded-full border text-[16px] font-semibold transition-colors ${
                               (todo.importance || 3) === level
-                                ? 'border-primary/60 bg-primary/30 text-foreground'
-                                : 'border-border/60 bg-background/20 text-muted-foreground hover:bg-background/40'
+                                ? isOverlay
+                                  ? 'border-[#6b98a2] bg-[#d9eaee] text-[#355965] shadow-[0_4px_12px_rgba(54,95,104,0.18)]'
+                                  : 'border-primary/60 bg-primary/30 text-foreground'
+                                : isOverlay
+                                  ? 'border-slate-300 bg-white text-slate-700 hover:border-[#6b98a2]/60 hover:bg-[#eef5f7]'
+                                  : 'border-border/60 bg-background/20 text-muted-foreground hover:bg-background/40'
                             }`}
                             title={t(`Set importance ${level}`, `设置重要程度 ${level}`)}
                           >
@@ -373,7 +405,7 @@ export function TodoPanel() {
                       size="sm"
                       variant="ghost"
                       onClick={() => deleteTodo(todo.id)}
-                      className="opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive"
+                      className={isOverlay ? 'text-slate-500 opacity-90 transition-opacity hover:bg-red-50 hover:text-red-500' : 'opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive'}
                     >
                       <Trash2 className="w-3 h-3" />
                     </Button>
@@ -391,9 +423,9 @@ export function TodoPanel() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="mt-5 border-t border-border/50 pt-4"
+            className={`mt-5 pt-4 ${isOverlay ? 'border-t border-slate-300/40' : 'border-t border-border/50'}`}
           >
-            <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
+            <div className={`mb-2 flex items-center gap-2 text-xs ${isOverlay ? 'text-slate-500' : 'text-muted-foreground'}`}>
               <Archive className="w-3 h-3" />
               {t('Archived (Completed)', '已归档（已完成）')}
             </div>
@@ -404,24 +436,24 @@ export function TodoPanel() {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.03 }}
-                  className="group flex items-start gap-3 rounded-lg bg-muted/20 p-3"
+                  className={archivedItemClass}
                 >
                   <Checkbox
                     checked={todo.completed}
                     onCheckedChange={() => toggleTodo(todo.id)}
-                    className="mt-1"
+                    className={`mt-1 ${isOverlay ? 'border-slate-400 bg-white shadow-none data-[state=checked]:border-[#6b98a2] data-[state=checked]:bg-[#6b98a2]' : ''}`}
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm line-through text-muted-foreground">{todo.text}</p>
+                    <p className={`text-sm line-through ${isOverlay ? 'text-slate-400' : 'text-muted-foreground'}`}>{todo.text}</p>
                     {todo.priorityReason && (
-                      <p className="mt-1 text-[11px] text-muted-foreground">{todo.priorityReason}</p>
+                      <p className={`mt-1 text-[11px] ${isOverlay ? 'text-slate-500' : 'text-muted-foreground'}`}>{todo.priorityReason}</p>
                     )}
                   </div>
                   <Button
                     size="sm"
                     variant="ghost"
                     onClick={() => deleteTodo(todo.id)}
-                    className="opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive"
+                    className={isOverlay ? 'text-slate-400 opacity-70 transition-opacity hover:text-red-500' : 'opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive'}
                   >
                     <Trash2 className="w-3 h-3" />
                   </Button>
@@ -437,13 +469,13 @@ export function TodoPanel() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="mt-6 p-4 rounded-lg bg-primary/10 border border-primary/20"
+          className={isOverlay ? 'mt-6 rounded-[22px] bg-[rgba(238,243,246,0.88)] p-4 shadow-[0_8px_20px_rgba(20,52,64,0.08)]' : 'mt-6 p-4 rounded-lg bg-primary/10 border border-primary/20'}
         >
-          <p className="text-xs text-muted-foreground mb-2">{t('Progress', '进度')}</p>
+          <p className={`mb-2 text-xs ${isOverlay ? 'text-slate-500' : 'text-muted-foreground'}`}>{t('Progress', '进度')}</p>
           <div className="flex items-center gap-2">
-            <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+            <div className={`flex-1 h-2 overflow-hidden rounded-full ${isOverlay ? 'bg-slate-300/35' : 'bg-muted'}`}>
               <motion.div
-                className="h-full bg-accent"
+                className={`h-full ${isOverlay ? 'bg-[#6b98a2]' : 'bg-accent'}`}
                 initial={{ width: 0 }}
                 animate={{
                   width: `${
@@ -455,7 +487,7 @@ export function TodoPanel() {
                 transition={{ duration: 0.5 }}
               />
             </div>
-            <span className="text-xs font-medium text-foreground">
+            <span className={`text-xs font-medium ${isOverlay ? 'text-slate-700' : 'text-foreground'}`}>
               {archivedTodos.length}/{progress.todos.length}
             </span>
           </div>

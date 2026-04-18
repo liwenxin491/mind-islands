@@ -113,6 +113,10 @@ Based on:
    - `GEMINI_API_KEY`
    - `DATABASE_URL` (PostgreSQL/RDS)
    - `JWT_SECRET`
+   - SMTP settings for email verification:
+     - `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`
+     - `SMTP_USER`, `SMTP_PASS`
+     - `EMAIL_FROM`
 3. Start app + local API together: `npm run dev`
 4. Open the printed URL (typically `http://localhost:5173` or `http://localhost:5174`)
 5. Register an account, sign in, and use Mind Islands with cloud-synced progress

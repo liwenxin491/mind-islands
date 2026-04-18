@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mind Islands | Sea Otter Redesign Concepts</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <span class="eyebrow">Mind Islands redesign review board</span>
+        <div class="hero-grid">
+          <div>
+            <h1>Sea otter as the only self-externalized avatar.</h1>
+            <p>
+              These concept boards turn the otter into the primary emotional entry point,
+              make conversational logging the default behavior, and push the islands into a
+              more intentional secondary surface. Every option keeps the otter in first-person
+              self-talk and avoids the “digital pet” feeling.
+            </p>
+          </div>
+          <div class="card">
+            <h3>How to review this board</h3>
+            <ul class="bullets">
+              <li>Pick the home-screen feeling you want first, before we touch production code.</li>
+              <li>Treat the avatar version and the flow version as a pair, not separate decorations.</li>
+              <li>Ask: does this feel like self-support, not a companion chatbot and not a game pet?</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="constants">
+        <div class="constants-grid">
+          <div class="constant">
+            <strong>Fixed product rule</strong>
+            The product has one avatar only: a sea otter. No more `owl`, `puppy`, or `girl`.
+          </div>
+          <div class="constant">
+            <strong>Primary home action</strong>
+            “Tell me what happened today” becomes the main entry, powered by the log assistant.
+          </div>
+          <div class="constant">
+            <strong>Secondary world</strong>
+            Islands still matter, but they become a world you enter intentionally rather than the first screen.
+          </div>
+          <div class="constant">
+            <strong>Interaction metaphor</strong>
+            Everyday logs become shells. Extra-precious memories can later become stones kept close.
+          </div>
+        </div>
+      </section>
+
+      <section class="concepts">
+        <article class="concept" id="concept-lagoon-confidant">
+          <header class="concept-header">
+            <div>
+              <span class="pill">Concept 01</span>
+              <h2>Lagoon Confidant</h2>
+              <p>
+                The calmest version. The home screen is almost entirely the otter and the conversation.
+                Islands exist behind a gentle sheet, so the first emotional move is always speaking to yourself.
+              </p>
+            </div>
+            <div class="card">
+              <strong>Best fit</strong>
+              Most aligned with “record first, reflect softly, no dashboard energy.”
+            </div>
+          </header>
+
+          <div class="concept-grid">
+            <div class="card-group">
+              <section class="card">
+                <h3>Avatar variant A: Velvet Otter</h3>
+                <ul class="meta">
+                  <li><strong>Silhouette</strong> Rounded 3/4 pose, tucked paws, heartline chest pocket.</li>
+                  <li><strong>Material</strong> Velvet fur gradients, warm belly glow, low-contrast rim light.</li>
+                  <li><strong>Motion</strong> Breathing drift, tiny head tilt, shell reveal from chest pocket.</li>
+                  <li><strong>Atmosphere</strong> Smoky plum lagoon with mossy reflections, not visible ocean blue.</li>
+                </ul>
+              </section>
+              <section class="card">
+                <h3>Flow summary</h3>
+                <ul class="bullets">
+                  <li>Home = otter + bubble + log input + one islands button.</li>
+                  <li>After confirm, a shell glides into the Memories sheet.</li>
+                  <li>Manual island editing stays available, but one level deeper.</li>
+                </ul>
+              </section>
+              <section class="card">
+                <h3>Main risk</h3>
+                <p>
+                  The islands world may feel too hidden unless we give the secondary entry enough poetry and presence.
+                </p>
+              </section>
+            </div>
+
+            <div>
+              <div class="phones">
+                <section class="phone">
+                  <div class="phone-screen">
+                    <div class="phone-header">
+                      <span class="app-title">Mind Islands</span>
+                      <span class="micro-btn">Memories</span>
+                    </div>
+                    <div class="otter-stage">
+                      <div class="bubble">I want to hold onto this gently. You can tell me what happened, and I’ll sort it with you.</div>
+                      <div class="lagoon"></div>
+                      <svg class="otter-svg" viewBox="0 0 260 240" aria-label="Velvet otter concept">
+                        <defs>
+                          <radialGradient id="velvetGlow" cx="50%" cy="35%" r="60%">
+                            <stop offset="0%" stop-color="#d9c0b8" stop-opacity="0.5"></stop>
+                            <stop offset="100%" stop-color="#d9c0b8" stop-opacity="0"></stop>
+                          </radialGradient>
+                          <linearGradient id="velvetBody" x1="0%" x2="0%" y1="0%" y2="100%">
+                            <stop offset="0%" stop-color="#8a6d66"></stop>
+                            <stop offset="55%" stop-color="#705752"></stop>
+                            <stop offset="100%" stop-color="#5d4745"></stop>
+                          </linearGradient>
+                          <linearGradient id="velvetBelly" x1="0%" x2="0%" y1="0%" y2="100%">
+                            <stop offset="0%" stop-color="#ead8cb"></stop>
+                            <stop offset="100%" stop-color="#cfb4a6"></stop>
+                          </linearGradient>
+                        </defs>
+                        <ellipse cx="130" cy="188" rx="72" ry="18" fill="rgba(18,13,24,0.28)"></ellipse>
+                        <ellipse cx="130" cy="116" rx="82" ry="84" fill="url(#velvetGlow)"></ellipse>
+                        <path d="M78 132c0-44 28-74 52-74s52 30 52 74c0 36-17 60-52 60s-52-24-52-60z" fill="url(#velvetBody)"></path>
+                        <ellipse cx="130" cy="136" rx="36" ry="47" fill="url(#velvetBelly)"></ellipse>
+                        <ellipse cx="108" cy="56" rx="18" ry="16" fill="#856962"></ellipse>
+                        <ellipse cx="152" cy="56" rx="18" ry="16" fill="#856962"></ellipse>
+                        <circle cx="130" cy="76" r="38" fill="#7a6059"></circle>
+                        <ellipse cx="113" cy="74" rx="14" ry="16" fill="#f6efe9"></ellipse>
+                        <ellipse cx="147" cy="74" rx="14" ry="16" fill="#f6efe9"></ellipse>
+                        <circle cx="114" cy="75" r="7" fill="#2b2328"></circle>
+                        <circle cx="146" cy="75" r="7" fill="#2b2328"></circle>
+                        <circle cx="117" cy="72" r="2.2" fill="#fff"></circle>
+                        <circle cx="149" cy="72" r="2.2" fill="#fff"></circle>
+                        <ellipse cx="130" cy="94" rx="17" ry="12" fill="#e8d3ca"></ellipse>
+                        <path d="M124 90h12l-6 7z" fill="#2e2628"></path>
+                        <path d="M124 102c3 4 9 4 12 0" stroke="#5d4745" stroke-width="3" stroke-linecap="round" fill="none"></path>
+                        <ellipse cx="95" cy="132" rx="20" ry="34" fill="#6a524d"></ellipse>
+                        <ellipse cx="165" cy="132" rx="20" ry="34" fill="#6a524d"></ellipse>
+                        <ellipse cx="114" cy="140" rx="17" ry="22" fill="#cfb4a6"></ellipse>
+                        <ellipse cx="146" cy="140" rx="17" ry="22" fill="#cfb4a6"></ellipse>
+                        <path d="M106 140c6 7 12 11 24 11s18-4 24-11" fill="none" stroke="#b88a66" stroke-width="11" stroke-linecap="round"></path>
+                        <path d="M98 183c11 7 24 11 32 11s21-4 32-11" fill="none" stroke="#5d4745" stroke-width="11" stroke-linecap="round"></path>
+                        <path d="M130 135c9 0 14 6 14 14s-5 16-14 16s-14-8-14-16s5-14 14-14z" fill="rgba(249,236,222,0.3)"></path>
+                      </svg>
+                    </div>
+                    <div class="phone-stack">
+                      <div class="input-panel">
+                        <strong>Primary action</strong>
+                        <p>Tell me what happened today, and I’ll draft where it belongs.</p>
+                        <div class="input-row">
+                          <div class="fake-input">“I finished the draft for my project and finally ate lunch on time.”</div>
+                          <div class="send-btn" aria-hidden="true"></div>
+                        </div>
+                      </div>
+                      <div class="sheet">
+                        <strong>Pending shell</strong>
+                        <p>Work shell + Body shell ready. Confirm and place them gently.</p>
+                        <div class="input-row">
+                          <span class="shell-chip">Work</span>
+                          <span class="shell-chip">Body</span>
+                          <span class="micro-btn">Confirm</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="phone">
+                  <div class="phone-screen">
+                    <div class="phone-header">
+                      <span class="app-title">Memories sheet</span>
+                      <span class="micro-btn">Back</span>
+                    </div>
+                    <div class="world-preview">
+                      <div class="history-card">
+                        <strong>Secondary surface</strong>
+                        <p>Islands appear as a quiet atlas, not the first thing you must manage.</p>
+                      </div>
+                      <div class="world-islands">
+                        <div class="island-node">Body &amp; Health</div>
+                        <div class="island-node">Work</div>
+                        <div class="island-node">Learning</div>
+                        <div class="island-node">Relationships</div>
+                        <div class="island-node">Curiosity</div>
+                        <div class="island-node">Self-Compassion</div>
+                      </div>
+                      <div class="island-card">
+                        <strong>Recent shell</strong>
+                        <p>“I finished the draft and fed myself on time.”</p>
+                        <div class="input-row">
+                          <span class="shell-chip">Placed in Work</span>
+                          <span class="shell-chip">Placed in Body</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </div>
+
+              <div class="flow">
+                <div class="flow-grid">
+                  <div class="flow-step"><span>1</span><strong>Land on the otter</strong><p>The first screen is relational, not operational.</p></div>
+                  <div class="flow-step"><span>2</span><strong>Speak naturally</strong><p>The AI log assistant is now the default way to capture the day.</p></div>
+                  <div class="flow-step"><span>3</span><strong>Receive a shell draft</strong><p>The memory is held as a shell, not a productivity card.</p></div>
+                  <div class="flow-step"><span>4</span><strong>Confirm gently</strong><p>The shell slides toward the Memories sheet instead of triggering dashboard noise.</p></div>
+                  <div class="flow-step"><span>5</span><strong>Visit islands when desired</strong><p>Manual edits and world-browsing remain available as deliberate actions.</p></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="concept" id="concept-pocket-ritual">
+          <header class="concept-header">
+            <div>
+              <span class="pill">Concept 02</span>
+              <h2>Pocket Ritual</h2>
+              <p>
+                A more tactile, object-centered interpretation. The otter’s pocket becomes a ritual space:
+                shells are reviewed, held, and confirmed before being tucked into the larger island world.
+              </p>
+            </div>
+            <div class="card">
+              <strong>Best fit</strong>
+              Strongest shell/pocket metaphor, strongest sense of “precious memory” without making the product childish.
+            </div>
+          </header>
+
+          <div class="concept-grid">
+            <div class="card-group">
+              <section class="card">
+                <h3>Avatar variant B: Riverstone Otter</h3>
+                <ul class="meta">
+                  <li><strong>Silhouette</strong> More upright torso, clearer chest pocket, paws closer to the body.</li>
+                  <li><strong>Material</strong> Smooth riverstone shading, shell-like highlights, slightly more sculptural.</li>
+                  <li><strong>Motion</strong> Pocket-opening gesture, shell weighing gesture, slower nods.</li>
+                  <li><strong>Atmosphere</strong> Wet stone, dusk plum, brushed copper, muted reeds.</li>
+                </ul>
+              </section>
+              <section class="card">
+                <h3>Flow summary</h3>
+                <ul class="bullets">
+                  <li>Home includes otter, chat, and a visible “Pocket” tray with 1-3 recent shells.</li>
+                  <li>Confirming a draft feels like placing something inside a cherished inner space.</li>
+                  <li>Islands still live one step away, but the object ritual is the emotional anchor.</li>
+                </ul>
+              </section>
+              <section class="card">
+                <h3>Main risk</h3>
+                <p>
+                  If we over-materialize the pocket interaction, it can drift too close to “collectibles” and away from self-reflection.
+                </p>
+              </section>
+            </div>
+
+            <div>
+              <div class="phones">
+                <section class="phone">
+                  <div class="phone-screen">
+                    <div class="phone-header">
+                      <span class="app-title">Mind Islands</span>
+                      <span class="micro-btn">Pocket</span>
+                    </div>
+                    <div class="otter-stage">
+                      <div class="bubble">I want to keep this close for a moment before I place it anywhere.</div>
+                      <div class="lagoon"></div>
+                      <svg class="otter-svg" viewBox="0 0 260 240" aria-label="Riverstone otter concept">
+                        <defs>
+                          <linearGradient id="stoneBody" x1="0%" x2="0%" y1="0%" y2="100%">
+                            <stop offset="0%" stop-color="#8d7f74"></stop>
+                            <stop offset="52%" stop-color="#74675f"></stop>
+                            <stop offset="100%" stop-color="#655953"></stop>
+                          </linearGradient>
+                          <linearGradient id="stoneBelly" x1="0%" x2="0%" y1="0%" y2="100%">
+                            <stop offset="0%" stop-color="#efe3d8"></stop>
+                            <stop offset="100%" stop-color="#cfbaa9"></stop>
+                          </linearGradient>
+                        </defs>
+                        <ellipse cx="130" cy="188" rx="78" ry="18" fill="rgba(18,13,24,0.28)"></ellipse>
+                        <path d="M84 132c0-50 26-80 46-80h0c20 0 46 30 46 80 0 40-14 60-46 60h0c-32 0-46-20-46-60z" fill="url(#stoneBody)"></path>
+                        <ellipse cx="130" cy="139" rx="34" ry="49" fill="url(#stoneBelly)"></ellipse>
+                        <ellipse cx="104" cy="59" rx="18" ry="16" fill="#7f7368"></ellipse>
+                        <ellipse cx="156" cy="59" rx="18" ry="16" fill="#7f7368"></ellipse>
+                        <circle cx="130" cy="80" r="38" fill="#7a6d64"></circle>
+                        <ellipse cx="112" cy="79" rx="14" ry="16" fill="#faf4ef"></ellipse>
+                        <ellipse cx="148" cy="79" rx="14" ry="16" fill="#faf4ef"></ellipse>
+                        <circle cx="113" cy="79" r="6.5" fill="#2a2325"></circle>
+                        <circle cx="147" cy="79" r="6.5" fill="#2a2325"></circle>
+                        <ellipse cx="130" cy="99" rx="17" ry="12" fill="#eadbcf"></ellipse>
+                        <path d="M124 95h12l-6 7z" fill="#2e2628"></path>
+                        <path d="M123 106c4 4 10 4 14 0" stroke="#6d5a57" stroke-width="3" stroke-linecap="round" fill="none"></path>
+                        <ellipse cx="96" cy="136" rx="18" ry="34" fill="#6d5d57"></ellipse>
+                        <ellipse cx="164" cy="136" rx="18" ry="34" fill="#6d5d57"></ellipse>
+                        <ellipse cx="112" cy="148" rx="18" ry="22" fill="#d3b8a7"></ellipse>
+                        <ellipse cx="148" cy="148" rx="18" ry="22" fill="#d3b8a7"></ellipse>
+                        <path d="M107 149c7 8 14 13 23 13s16-5 23-13" fill="none" stroke="#c58e64" stroke-width="12" stroke-linecap="round"></path>
+                        <ellipse cx="130" cy="148" rx="19" ry="15" fill="rgba(255,255,255,0.2)"></ellipse>
+                        <path d="M116 146c4 2 9 4 14 4s10-2 14-4" fill="none" stroke="#a97855" stroke-width="4" stroke-linecap="round"></path>
+                        <path d="M98 184c11 7 24 11 32 11s21-4 32-11" fill="none" stroke="#655953" stroke-width="11" stroke-linecap="round"></path>
+                      </svg>
+                    </div>
+                    <div class="phone-stack">
+                      <div class="input-panel">
+                        <strong>Pocket-first prompt</strong>
+                        <p>“What should I hold onto from today before we sort it?”</p>
+                        <div class="input-row">
+                          <div class="fake-input">“I had a hard afternoon, but I still texted my friend instead of spiraling alone.”</div>
+                          <div class="send-btn" aria-hidden="true"></div>
+                        </div>
+                      </div>
+                      <div class="sheet">
+                        <strong>Recent shells in pocket</strong>
+                        <div class="input-row">
+                          <span class="shell-chip">Ate lunch on time</span>
+                          <span class="shell-chip">Sent the text</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="phone">
+                  <div class="phone-screen">
+                    <div class="phone-header">
+                      <span class="app-title">Pocket review</span>
+                      <span class="micro-btn">Place later</span>
+                    </div>
+                    <div class="phone-stack">
+                      <div class="history-card">
+                        <strong>Otter language</strong>
+                        <p>I think this belongs in Relationships, and maybe a little in Self-Compassion too.</p>
+                      </div>
+                      <div class="island-card">
+                        <strong>Suggested placement</strong>
+                        <div class="input-row">
+                          <span class="shell-chip">Relationships</span>
+                          <span class="shell-chip">Self-Compassion</span>
+                        </div>
+                      </div>
+                      <div class="world-islands">
+                        <div class="island-node">Body</div>
+                        <div class="island-node">Work</div>
+                        <div class="island-node">Learning</div>
+                        <div class="island-node">Relations</div>
+                        <div class="island-node">Curiosity</div>
+                        <div class="island-node">Compassion</div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </div>
+
+              <div class="flow">
+                <div class="flow-grid">
+                  <div class="flow-step"><span>1</span><strong>Open the pocket</strong><p>The emotional prompt is about what deserves to be held.</p></div>
+                  <div class="flow-step"><span>2</span><strong>Draft as shells</strong><p>Each memory is tangible but not gamified.</p></div>
+                  <div class="flow-step"><span>3</span><strong>Review placement</strong><p>The otter gently suggests where this memory belongs.</p></div>
+                  <div class="flow-step"><span>4</span><strong>Keep or place</strong><p>You can hold a shell a little longer or place it into the world.</p></div>
+                  <div class="flow-step"><span>5</span><strong>Visit the atlas</strong><p>The island world stays accessible without overpowering the ritual.</p></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="concept" id="concept-memory-courier">
+          <header class="concept-header">
+            <div>
+              <span class="pill">Concept 03</span>
+              <h2>Memory Courier</h2>
+              <p>
+                The most animated version. The home screen still starts with the otter, but the islands remain faintly present,
+                and after confirmation the otter physically travels to place the shell on the right island.
+              </p>
+            </div>
+            <div class="card">
+              <strong>Best fit</strong>
+              Strongest “Mind Islands” world presence and strongest motion storytelling.
+            </div>
+          </header>
+
+          <div class="concept-grid">
+            <div class="card-group">
+              <section class="card">
+                <h3>Avatar variant C: Tideglass Otter</h3>
+                <ul class="meta">
+                  <li><strong>Silhouette</strong> Longer body and clearer swim line, easier to animate between nodes.</li>
+                  <li><strong>Material</strong> Semi-luminous glassy highlights over soft fur, more 2.5D than plush.</li>
+                  <li><strong>Motion</strong> Swim arc, shell carry pose, return-to-rest pose.</li>
+                  <li><strong>Atmosphere</strong> Tidal dusk with island shadows already visible in the distance.</li>
+                </ul>
+              </section>
+              <section class="card">
+                <h3>Flow summary</h3>
+                <ul class="bullets">
+                  <li>The world is visible but quiet on the first screen.</li>
+                  <li>Confirming a shell triggers a short otter travel sequence.</li>
+                  <li>This version should come after we validate the simpler conversation-first home.</li>
+                </ul>
+              </section>
+              <section class="card">
+                <h3>Main risk</h3>
+                <p>
+                  This is the easiest version to accidentally turn into a pet simulation. The wording and motion restraint have to stay extremely disciplined.
+                </p>
+              </section>
+            </div>
+
+            <div>
+              <div class="phones">
+                <section class="phone">
+                  <div class="phone-screen">
+                    <div class="phone-header">
+                      <span class="app-title">Mind Islands</span>
+                      <span class="micro-btn">World</span>
+                    </div>
+                    <div class="otter-stage">
+                      <div class="bubble">I’ve got this one. Once we confirm it, I’ll place it where it belongs.</div>
+                      <div class="lagoon"></div>
+                      <svg class="otter-svg" viewBox="0 0 320 210" aria-label="Tideglass otter concept">
+                        <defs>
+                          <linearGradient id="glassBody" x1="0%" x2="100%" y1="0%" y2="100%">
+                            <stop offset="0%" stop-color="#8f7c78"></stop>
+                            <stop offset="55%" stop-color="#6a5f63"></stop>
+                            <stop offset="100%" stop-color="#504d5f"></stop>
+                          </linearGradient>
+                          <linearGradient id="glassBelly" x1="0%" x2="0%" y1="0%" y2="100%">
+                            <stop offset="0%" stop-color="#f2e3d9"></stop>
+                            <stop offset="100%" stop-color="#d5bcaf"></stop>
+                          </linearGradient>
+                        </defs>
+                        <ellipse cx="152" cy="174" rx="110" ry="18" fill="rgba(14, 11, 20, 0.26)"></ellipse>
+                        <path d="M88 132c0-46 28-74 70-74 48 0 100 35 100 82 0 27-19 42-52 42h-60c-37 0-58-18-58-50z" fill="url(#glassBody)"></path>
+                        <ellipse cx="145" cy="128" rx="34" ry="40" fill="url(#glassBelly)"></ellipse>
+                        <ellipse cx="119" cy="64" rx="17" ry="16" fill="#85726b"></ellipse>
+                        <circle cx="150" cy="77" r="35" fill="#7a6863"></circle>
+                        <ellipse cx="135" cy="76" rx="13" ry="15" fill="#faf4ef"></ellipse>
+                        <ellipse cx="165" cy="76" rx="13" ry="15" fill="#faf4ef"></ellipse>
+                        <circle cx="136" cy="76" r="6.5" fill="#282326"></circle>
+                        <circle cx="164" cy="76" r="6.5" fill="#282326"></circle>
+                        <ellipse cx="150" cy="95" rx="16" ry="11" fill="#e8d8ce"></ellipse>
+                        <path d="M144 91h12l-6 7z" fill="#2f282b"></path>
+                        <path d="M145 104c3 4 8 4 11 0" stroke="#67585b" stroke-width="3" stroke-linecap="round" fill="none"></path>
+                        <ellipse cx="122" cy="126" rx="18" ry="26" fill="#6f625d" transform="rotate(22 122 126)"></ellipse>
+                        <ellipse cx="176" cy="126" rx="18" ry="26" fill="#6f625d" transform="rotate(-26 176 126)"></ellipse>
+                        <path d="M163 118c14 2 22 11 28 24" stroke="#d8a57f" stroke-width="10" stroke-linecap="round" fill="none"></path>
+                        <path d="M190 142c12-2 28-8 36-18" stroke="#514b5d" stroke-width="13" stroke-linecap="round" fill="none"></path>
+                        <path d="M230 123c16-5 24-13 29-25" stroke="#514b5d" stroke-width="11" stroke-linecap="round" fill="none"></path>
+                        <path d="M145 128c8 6 14 9 22 9s15-3 22-9" stroke="#c98964" stroke-width="10" stroke-linecap="round" fill="none"></path>
+                        <ellipse cx="196" cy="132" rx="12" ry="10" fill="#d6ae8e"></ellipse>
+                      </svg>
+                    </div>
+                    <div class="phone-stack">
+                      <div class="input-panel">
+                        <strong>Primary action</strong>
+                        <p>Tell me what happened, then watch me place it.</p>
+                        <div class="input-row">
+                          <div class="fake-input">“I noticed a weird little idea on my walk, and I want to keep it before it fades.”</div>
+                          <div class="send-btn" aria-hidden="true"></div>
+                        </div>
+                      </div>
+                      <div class="sheet">
+                        <strong>World already present</strong>
+                        <div class="input-row">
+                          <span class="shell-chip">Curiosity island nearby</span>
+                          <span class="micro-btn">Watch placement</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="phone">
+                  <div class="phone-screen">
+                    <div class="phone-header">
+                      <span class="app-title">Placement moment</span>
+                      <span class="micro-btn">Skip motion</span>
+                    </div>
+                    <div class="world-preview">
+                      <div class="history-card">
+                        <strong>Motion beat</strong>
+                        <p>The otter carries the shell along a short arc to Curiosity, then returns to center.</p>
+                      </div>
+                      <div class="world-islands">
+                        <div class="island-node">Body</div>
+                        <div class="island-node">Work</div>
+                        <div class="island-node">Learning</div>
+                        <div class="island-node">Relations</div>
+                        <div class="island-node">Curiosity ✦</div>
+                        <div class="island-node">Compassion</div>
+                      </div>
+                      <div class="island-card">
+                        <strong>Why later, not first</strong>
+                        <p>Beautiful, but heavier. Best as a second phase after the simpler conversation-first version is validated.</p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </div>
+
+              <div class="flow">
+                <div class="flow-grid">
+                  <div class="flow-step"><span>1</span><strong>Open with otter + horizon</strong><p>The world is visible but subdued behind the relational entry.</p></div>
+                  <div class="flow-step"><span>2</span><strong>Draft a shell</strong><p>The record still starts as conversation, not a map interaction.</p></div>
+                  <div class="flow-step"><span>3</span><strong>Confirm placement</strong><p>The otter takes responsibility for carrying it to the right island.</p></div>
+                  <div class="flow-step"><span>4</span><strong>Short travel ritual</strong><p>A brief, skippable motion beat shows the memory reaching its island.</p></div>
+                  <div class="flow-step"><span>5</span><strong>Return to center</strong><p>The otter returns to the user, reinforcing self-support instead of task-completion reward.</p></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="card" style="margin-top: 28px;">
+        <h3>Cross-concept recommendation</h3>
+        <p>
+          If we want the strongest first implementation path, start with <strong>Lagoon Confidant</strong>.
+          It aligns most closely with your core product intention and requires the least risky structural change.
+          If you want the shell/pocket metaphor to become more materially expressive, borrow selected details from
+          <strong>Pocket Ritual</strong>. Save <strong>Memory Courier</strong> for a second phase, once the conversation-first home is stable.
+        </p>
+        <div class="variant-legend">
+          <div class="variant-note">
+            <strong>Most emotionally clear</strong>
+            Lagoon Confidant
+          </div>
+          <div class="variant-note">
+            <strong>Strongest object metaphor</strong>
+            Pocket Ritual
+          </div>
+          <div class="variant-note">
+            <strong>Strongest world animation</strong>
+            Memory Courier
+          </div>
+        </div>
+      </section>
+
+      <section class="footer-note">
+        Next implementation move after you review: remove multi-character support from the type system, replace the current owl-specific rendering path with a dedicated otter component, and build the new home flow as an exploration surface before we migrate the production Hub.
+      </section>
+    </main>
+  </body>
+</html>

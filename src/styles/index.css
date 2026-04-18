@@ -1,3 +1,214 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
+
+html,
+body,
+#root {
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+}
+
+.hub-water-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, #dbf5f4 0%, #cdeeed 24%, #c2e8e5 52%, #c8edeb 78%, #dbf7f7 100%);
+}
+
+.hub-water-bg > div {
+  position: absolute;
+  inset: 0;
+}
+
+.hub-water-bg__wash {
+  mix-blend-mode: normal;
+}
+
+.hub-water-bg__wash--base {
+  background:
+    radial-gradient(120% 46% at 14% 18%, rgba(244, 252, 250, 0.72) 0%, rgba(244, 252, 250, 0) 58%),
+    radial-gradient(88% 42% at 78% 26%, rgba(181, 226, 225, 0.34) 0%, rgba(181, 226, 225, 0) 62%),
+    radial-gradient(96% 52% at 50% 82%, rgba(156, 214, 214, 0.2) 0%, rgba(156, 214, 214, 0) 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0));
+  filter: blur(18px);
+  opacity: 0.95;
+}
+
+.hub-water-bg__wash--mist {
+  background:
+    radial-gradient(70% 24% at 18% 32%, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0) 74%),
+    radial-gradient(64% 22% at 76% 44%, rgba(225, 247, 245, 0.32) 0%, rgba(225, 247, 245, 0) 72%),
+    radial-gradient(80% 24% at 46% 68%, rgba(202, 237, 235, 0.22) 0%, rgba(202, 237, 235, 0) 72%);
+  filter: blur(34px);
+  opacity: 0.9;
+}
+
+.hub-water-bg__wash--depth {
+  background:
+    radial-gradient(72% 18% at 30% 58%, rgba(126, 193, 196, 0.12) 0%, rgba(126, 193, 196, 0) 74%),
+    radial-gradient(68% 18% at 76% 70%, rgba(121, 186, 188, 0.1) 0%, rgba(121, 186, 188, 0) 72%),
+    radial-gradient(80% 24% at 50% 92%, rgba(140, 200, 200, 0.1) 0%, rgba(140, 200, 200, 0) 72%);
+  filter: blur(40px);
+  opacity: 0.8;
+}
+
+.hub-water-bg__wave-layer {
+  background-repeat: no-repeat;
+  opacity: 0.36;
+}
+
+.hub-water-bg__wave-layer--near {
+  background:
+    radial-gradient(78% 14% at 50% 14%, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.1) 28%, rgba(255, 255, 255, 0) 68%),
+    radial-gradient(82% 16% at 50% 34%, rgba(245, 253, 252, 0.18) 0%, rgba(245, 253, 252, 0.08) 26%, rgba(245, 253, 252, 0) 68%),
+    radial-gradient(76% 14% at 50% 56%, rgba(238, 249, 249, 0.14) 0%, rgba(238, 249, 249, 0.06) 28%, rgba(238, 249, 249, 0) 68%),
+    radial-gradient(84% 16% at 50% 78%, rgba(247, 253, 252, 0.18) 0%, rgba(247, 253, 252, 0.08) 26%, rgba(247, 253, 252, 0) 68%);
+  filter: blur(22px);
+}
+
+.hub-water-bg__wave-layer--far {
+  background:
+    radial-gradient(94% 18% at 50% 24%, rgba(135, 201, 202, 0.14) 0%, rgba(135, 201, 202, 0.06) 34%, rgba(135, 201, 202, 0) 72%),
+    radial-gradient(90% 16% at 50% 48%, rgba(149, 212, 212, 0.12) 0%, rgba(149, 212, 212, 0.05) 34%, rgba(149, 212, 212, 0) 72%),
+    radial-gradient(92% 18% at 50% 72%, rgba(121, 192, 194, 0.12) 0%, rgba(121, 192, 194, 0.05) 34%, rgba(121, 192, 194, 0) 72%);
+  filter: blur(30px);
+}
+
+.hub-water-bg__paper {
+  opacity: 0.34;
+}
+
+.hub-water-bg__paper-grain {
+  background:
+    radial-gradient(circle at 12% 20%, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0) 20%),
+    radial-gradient(circle at 84% 18%, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 18%),
+    radial-gradient(circle at 28% 74%, rgba(173, 219, 217, 0.1) 0%, rgba(173, 219, 217, 0) 18%),
+    radial-gradient(circle at 74% 66%, rgba(185, 227, 226, 0.08) 0%, rgba(185, 227, 226, 0) 18%);
+  filter: blur(46px);
+}
+
+.hub-water-bg__paper-fade {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent 24%, transparent 76%, rgba(255, 255, 255, 0.08)),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05), transparent 18%, transparent 82%, rgba(255, 255, 255, 0.04));
+  filter: blur(18px);
+}
+
+.hub-water-bg__drift {
+  opacity: 0.26;
+  background:
+    radial-gradient(88% 14% at 40% 22%, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.08) 26%, rgba(255, 255, 255, 0) 68%),
+    radial-gradient(74% 14% at 70% 42%, rgba(241, 251, 250, 0.16) 0%, rgba(241, 251, 250, 0.08) 26%, rgba(241, 251, 250, 0) 68%),
+    radial-gradient(82% 14% at 30% 68%, rgba(231, 247, 246, 0.14) 0%, rgba(231, 247, 246, 0.08) 26%, rgba(231, 247, 246, 0) 68%);
+  filter: blur(24px);
+}
+
+.hub-water-bg--soft .hub-water-bg__paper,
+.hub-water-bg--soft .hub-water-bg__drift {
+  display: none;
+}
+
+.hub-water-bg--soft .hub-water-bg__wave-layer {
+  opacity: 0.24;
+}
+
+.hub-water-bg--painterly .hub-water-bg__wave-layer {
+  opacity: 0.32;
+}
+
+.hub-water-bg--animated .hub-water-bg__wave-layer {
+  opacity: 0.3;
+}
+
+.hub-water-bg--animated .hub-water-bg__drift--one {
+  animation: hub-water-drift-a 16s ease-in-out infinite alternate;
+}
+
+.hub-water-bg--animated .hub-water-bg__drift--two {
+  animation: hub-water-drift-b 20s ease-in-out infinite alternate;
+  opacity: 0.18;
+}
+
+@keyframes hub-water-drift-a {
+  0% {
+    transform: translate3d(-1.5%, -1%, 0) scale(1.02);
+  }
+  100% {
+    transform: translate3d(1.5%, 1%, 0) scale(1.04);
+  }
+}
+
+@keyframes hub-water-drift-b {
+  0% {
+    transform: translate3d(1%, -0.5%, 0) scale(1.01);
+  }
+  100% {
+    transform: translate3d(-1%, 0.8%, 0) scale(1.03);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hub-water-bg__drift {
+    animation: none !important;
+  }
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+.otter-bob-bubble,
+.otter-bob-otter {
+  will-change: transform;
+}
+
+.otter-bob-bubble {
+  animation: otter-bob-bubble 4.8s ease-in-out infinite;
+}
+
+.otter-bob-otter {
+  animation: otter-bob-otter 4.8s ease-in-out infinite;
+}
+
+@keyframes otter-bob-bubble {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  50% {
+    transform: translateX(-50%) translateY(10px);
+  }
+}
+
+@keyframes otter-bob-otter {
+  0%,
+  100% {
+    transform: translateY(3rem);
+  }
+
+  50% {
+    transform: translateY(calc(3rem + 10px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .otter-bob-bubble,
+  .otter-bob-otter {
+    animation: none !important;
+  }
+}

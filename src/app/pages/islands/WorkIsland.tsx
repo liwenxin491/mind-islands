@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router';
 import { ArrowLeft, Plus, Target, TrendingUp, Heart, Trash2 } from 'lucide-react';
 import { useMindIslands } from '../../context/MindIslandsContext';
 import { Button } from '../../components/ui/button';
+import { SceneShell } from '../../components/SceneShell';
 import type { WorkStage, WorkItem } from '../../types';
 import { getDateKey } from '../../lib/time';
 
@@ -96,8 +97,8 @@ export function WorkIsland() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1a0f2e] via-[#2d1b4f] to-[#1a0f2e]">
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <SceneShell>
+      <div className="mx-auto max-w-7xl p-6 space-y-6">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -131,7 +132,7 @@ export function WorkIsland() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 backdrop-blur-md border border-blue-500/20 rounded-2xl p-6"
+          className="bg-gradient-to-r from-[#6b98a2]/12 to-[#8bb3bc]/12 backdrop-blur-md border border-[#6b98a2]/20 rounded-2xl p-6"
         >
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-medium text-foreground flex items-center gap-2">
@@ -412,6 +413,6 @@ export function WorkIsland() {
           </div>
         </motion.div>
       </div>
-    </div>
+    </SceneShell>
   );
 }

@@ -101,9 +101,10 @@ const summarizeDraft = (insight: AIInsightPayload, language: 'en' | 'zh') => {
   return lines.slice(0, 6);
 };
 
-export function AIChat() {
+export function AIChat({ variant = 'standalone' }: { variant?: 'standalone' | 'overlay' }) {
   const { progress, addChatMessage, applyAIInsights } = useMindIslands();
   const { language, t } = useLanguage();
+  const isOverlay = variant === 'overlay';
   const islandNameMap: Record<IslandType, string> = {
     body: t('Body & Health', '健康与运动'),
     work: t('Work', '工作'),
@@ -282,21 +283,27 @@ export function AIChat() {
   const draftIslands = pendingDraft?.insight.detectedIslands || [];
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-card/40 backdrop-blur-xl">
-      <div className="border-b border-border bg-primary/5 p-4">
+    <div
+      className={
+        isOverlay
+          ? 'flex h-full min-h-0 flex-col overflow-hidden rounded-[26px] bg-[rgba(238,243,246,0.38)]'
+          : 'flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-card/40 backdrop-blur-xl'
+      }
+    >
+      <div className={isOverlay ? 'border-b border-slate-300/35 bg-[rgba(241,246,248,0.72)] p-4' : 'border-b border-border bg-primary/5 p-4'}>
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary/40 to-secondary/40">
-            <Sparkles className="h-5 w-5 text-accent" />
+          <div className={`flex h-10 w-10 items-center justify-center rounded-full ${isOverlay ? 'bg-[#8bb3bc]/28' : 'bg-gradient-to-br from-primary/40 to-secondary/40'}`}>
+            <Sparkles className={`h-5 w-5 ${isOverlay ? 'text-[#5f8f98]' : 'text-accent'}`} />
           </div>
           <div>
-            <h3 className="font-medium text-foreground">{t('AI Log Assistant', 'AI 记录助手')}</h3>
-            <p className="text-xs text-muted-foreground">{t('Draft first, then confirm archive', '先生成草稿，再确认归档')}</p>
+            <h3 className={`font-medium ${isOverlay ? 'text-slate-800' : 'text-foreground'}`}>{t('AI Log Assistant', 'AI 记录助手')}</h3>
+            <p className={`text-xs ${isOverlay ? 'text-slate-500' : 'text-muted-foreground'}`}>{t('Draft first, then confirm archive', '先生成草稿，再确认归档')}</p>
           </div>
         </div>
       </div>
 
       <div
-        className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 scroll-smooth"
+        className={`flex-1 min-h-0 overflow-y-auto hide-scrollbar overscroll-contain p-4 scroll-smooth ${isOverlay ? 'bg-transparent' : ''}`}
         ref={scrollRef}
       >
         <div className="space-y-4">
@@ -304,39 +311,39 @@ export function AIChat() {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="py-8 text-center text-muted-foreground"
+              className={`py-8 text-center ${isOverlay ? 'text-slate-500' : 'text-muted-foreground'}`}
             >
-              <Sparkles className="mx-auto mb-3 h-8 w-8 text-primary/50" />
+              <Sparkles className={`mx-auto mb-3 h-8 w-8 ${isOverlay ? 'text-[#5f8f98]/70' : 'text-primary/50'}`} />
               <p className="text-sm">{t('Tell me what you did today, and I will draft a log first.', '告诉我你今天做了什么，我会先帮你生成记录草稿。')}</p>
               <p className="mt-2 text-xs">{t('Example: Leg workout for 40 minutes tonight.', '示例：今晚练腿 40 分钟。')}</p>
             </motion.div>
           )}
 
           {pendingFollowup && (
-            <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+            <div className={`rounded-xl border px-3 py-2 text-xs ${isOverlay ? 'border-amber-300/40 bg-amber-50/80 text-amber-700' : 'border-amber-400/30 bg-amber-500/10 text-amber-200'}`}>
               {t('Need one detail before drafting:', '生成草稿前还需要一个细节：')} {pendingFollowup.followupQuestion}
             </div>
           )}
 
           {pendingDraft && (
-            <div className="rounded-xl border border-primary/30 bg-primary/10 p-3">
-              <p className="text-xs font-medium text-foreground">
+            <div className={`rounded-xl border p-3 ${isOverlay ? 'border-[#6b98a2]/22 bg-[rgba(188,214,220,0.22)]' : 'border-primary/30 bg-primary/10'}`}>
+              <p className={`text-xs font-medium ${isOverlay ? 'text-slate-800' : 'text-foreground'}`}>
                 {t('Pending Draft', '待确认草稿')}
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className={`mt-1 text-xs ${isOverlay ? 'text-slate-500' : 'text-muted-foreground'}`}>
                 {t('Target:', '目标分区：')} {draftIslands.length > 0 ? draftIslands.map((id) => islandNameMap[id]).join(' / ') : t('Not decided', '未确定')}
               </p>
               {draftSummary.length > 0 && (
                 <div className="mt-2 space-y-1">
                   {draftSummary.map((line) => (
-                    <p key={line} className="text-xs text-foreground/90">
+                    <p key={line} className={`text-xs ${isOverlay ? 'text-slate-700' : 'text-foreground/90'}`}>
                       {line}
                     </p>
                   ))}
                 </div>
               )}
               {Array.isArray(pendingDraft.insight.todos) && pendingDraft.insight.todos.length > 0 && (
-                <div className="mt-2 text-xs text-foreground/80">
+                <div className={`mt-2 text-xs ${isOverlay ? 'text-slate-600' : 'text-foreground/80'}`}>
                   {t('To-do preview:', '待办预览：')}{' '}
                   {pendingDraft.insight.todos
                     .slice(0, 2)
@@ -361,7 +368,7 @@ export function AIChat() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="border-red-300/50 text-red-200 hover:bg-red-500/20"
+                  className={isOverlay ? 'border-red-200/70 bg-white/65 text-red-500 hover:bg-red-50' : 'border-red-300/50 text-red-200 hover:bg-red-500/20'}
                   onClick={handleDiscardDraft}
                 >
                   <Trash2 className="mr-1 h-4 w-4" />
@@ -384,12 +391,16 @@ export function AIChat() {
                 <div
                   className={`max-w-[86%] rounded-2xl p-3 ${
                     message.role === 'user'
-                      ? 'rounded-br-sm bg-primary/20 text-foreground'
-                      : 'rounded-bl-sm bg-muted/50 text-foreground'
+                      ? isOverlay
+                        ? 'rounded-br-sm bg-[rgba(183,206,214,0.62)] text-slate-800'
+                        : 'rounded-br-sm bg-primary/20 text-foreground'
+                      : isOverlay
+                        ? 'rounded-bl-sm bg-[rgba(249,251,252,0.9)] text-slate-800 shadow-[0_6px_18px_rgba(25,53,67,0.08)]'
+                        : 'rounded-bl-sm bg-muted/50 text-foreground'
                   }`}
                 >
                   <p className="whitespace-pre-wrap text-sm">{message.content}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{formatTime24(message.timestamp)}</p>
+                  <p className={`mt-1 text-xs ${isOverlay ? 'text-slate-500' : 'text-muted-foreground'}`}>{formatTime24(message.timestamp)}</p>
                 </div>
               </motion.div>
             ))}
@@ -401,12 +412,12 @@ export function AIChat() {
               animate={{ opacity: 1, y: 0 }}
               className="flex justify-start"
             >
-              <div className="rounded-2xl rounded-bl-sm bg-muted/50 p-3">
+              <div className={`rounded-2xl rounded-bl-sm p-3 ${isOverlay ? 'bg-[rgba(249,251,252,0.9)] shadow-[0_6px_18px_rgba(25,53,67,0.08)]' : 'bg-muted/50'}`}>
                 <div className="flex gap-1">
                   {[0, 1, 2].map((i) => (
                     <motion.div
                       key={i}
-                      className="h-2 w-2 rounded-full bg-muted-foreground/50"
+                      className={`h-2 w-2 rounded-full ${isOverlay ? 'bg-slate-400/70' : 'bg-muted-foreground/50'}`}
                       animate={{ y: [0, -5, 0] }}
                       transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.1 }}
                     />
@@ -418,11 +429,11 @@ export function AIChat() {
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-border bg-background/50 p-4">
+      <div className={`shrink-0 border-t p-4 ${isOverlay ? 'border-slate-300/35 bg-[rgba(88,130,142,0.18)]' : 'border-border bg-background/50'}`}>
         {pendingDraft && (
-          <div className="mb-3 rounded-lg border border-primary/30 bg-primary/10 p-2">
+          <div className={`mb-3 rounded-lg border p-2 ${isOverlay ? 'border-[#6b98a2]/18 bg-[rgba(188,214,220,0.22)]' : 'border-primary/30 bg-primary/10'}`}>
             <div className="flex items-center justify-between gap-2">
-              <p className="text-xs text-foreground/90">
+              <p className={`text-xs ${isOverlay ? 'text-slate-700' : 'text-foreground/90'}`}>
                 {t('Pending draft:', '待确认草稿：')} {draftSummary.length > 0 ? draftSummary[0] : t(`${(pendingDraft.insight.todos || []).length} to-do item(s)`, `${(pendingDraft.insight.todos || []).length} 条待办`)}
               </p>
               <div className="flex gap-2">
@@ -436,7 +447,7 @@ export function AIChat() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-7 border-red-300/50 px-2 text-xs text-red-200 hover:bg-red-500/20"
+                  className={isOverlay ? 'h-7 border-red-200/70 bg-white/65 px-2 text-xs text-red-500 hover:bg-red-50' : 'h-7 border-red-300/50 px-2 text-xs text-red-200 hover:bg-red-500/20'}
                   onClick={handleDiscardDraft}
                 >
                   {t('Discard', '丢弃')}
@@ -457,13 +468,13 @@ export function AIChat() {
                   ? t('Edit this draft in natural language...', '用自然语言修改这条草稿...')
                   : t("Type today's update...", '输入今天的记录...')
             }
-            className="border-border/50 bg-input-background text-foreground placeholder:text-muted-foreground"
+            className={isOverlay ? 'border-slate-300/35 bg-[rgba(215,228,232,0.58)] text-slate-800 placeholder:text-slate-500' : 'border-border/50 bg-input-background text-foreground placeholder:text-muted-foreground'}
             disabled={isTyping}
           />
           <Button
             onClick={handleSend}
             disabled={!input.trim() || isTyping}
-            className="bg-primary text-primary-foreground hover:bg-primary/80"
+            className={isOverlay ? 'bg-[#6b98a2] text-white hover:bg-[#5a8791]' : 'bg-primary text-primary-foreground hover:bg-primary/80'}
           >
             <Send className="h-4 w-4" />
           </Button>

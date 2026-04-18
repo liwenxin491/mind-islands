@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useMindIslands } from '../../context/MindIslandsContext';
 import { Button } from '../../components/ui/button';
+import { SceneShell } from '../../components/SceneShell';
 import { getDateKey } from '../../lib/time';
 
 export function LearningIsland() {
@@ -135,8 +136,8 @@ export function LearningIsland() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1a0f2e] via-[#2d1b4f] to-[#1a0f2e]">
-      <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <SceneShell>
+      <div className="mx-auto max-w-6xl p-6 space-y-6">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -170,7 +171,7 @@ export function LearningIsland() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-purple-500/10 to-indigo-500/10 backdrop-blur-md border border-purple-500/20 rounded-2xl p-8"
+          className="bg-gradient-to-r from-[#6b98a2]/12 to-[#7eaab3]/12 backdrop-blur-md border border-[#6b98a2]/20 rounded-2xl p-8"
         >
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-medium text-foreground flex items-center gap-2">
@@ -180,7 +181,7 @@ export function LearningIsland() {
             {!currentGoal && (
               <Button
                 onClick={() => setShowGoalForm(!showGoalForm)}
-                className="bg-purple-500/20 hover:bg-purple-500/30"
+                className="bg-[#6b98a2]/20 hover:bg-[#6b98a2]/30"
               >
                 Set Goal
               </Button>
@@ -233,7 +234,7 @@ export function LearningIsland() {
                   )}
                 </div>
                 <div className="text-right">
-                  <div className="text-4xl font-bold text-purple-400">
+                  <div className="text-4xl font-bold text-[#6b98a2]">
                     {Math.round(calculateProgress())}%
                   </div>
                   <div className="text-sm text-muted-foreground">Complete</div>
@@ -243,7 +244,7 @@ export function LearningIsland() {
               {/* Progress Bar */}
               <div className="relative h-4 bg-white/5 rounded-full overflow-hidden">
                 <motion.div
-                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-purple-500 to-indigo-500"
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#6b98a2] to-[#8bb3bc]"
                   initial={{ width: 0 }}
                   animate={{ width: `${calculateProgress()}%` }}
                   transition={{ duration: 1, ease: 'easeOut' }}
@@ -277,7 +278,7 @@ export function LearningIsland() {
                   onClick={() => updateWeeklyMilestone(currentGoal.id, milestone.id, !milestone.completed)}
                   className={`p-4 rounded-xl border-2 transition-all text-left ${
                     milestone.completed
-                      ? 'bg-purple-500/20 border-purple-500/50'
+                      ? 'bg-[#6b98a2]/18 border-[#6b98a2]/40'
                       : 'bg-white/5 border-white/10 hover:border-white/30'
                   }`}
                   whileHover={{ scale: 1.02 }}
@@ -285,7 +286,7 @@ export function LearningIsland() {
                 >
                   <div className="flex items-start gap-3">
                     {milestone.completed ? (
-                      <CheckCircle2 className="w-6 h-6 text-purple-400 flex-shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-6 h-6 text-[#6b98a2] flex-shrink-0 mt-0.5" />
                     ) : (
                       <Circle className="w-6 h-6 text-muted-foreground flex-shrink-0 mt-0.5" />
                     )}
@@ -361,7 +362,7 @@ export function LearningIsland() {
                       onClick={() => setDailyLogForm({ ...dailyLogForm, focusedStudyMinutes: minutes })}
                       className={`flex-1 py-3 rounded-xl transition-all ${
                         dailyLogForm.focusedStudyMinutes === minutes
-                          ? 'bg-purple-500 text-white'
+                          ? 'bg-[#6b98a2] text-white'
                           : 'bg-white/5 text-muted-foreground hover:bg-white/10'
                       }`}
                     >
@@ -424,9 +425,9 @@ export function LearningIsland() {
           ) : todayLog ? (
             <div className="space-y-4" onDoubleClick={() => openDailyLogEditor(todayLog.id)}>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-purple-500/10 rounded-xl p-4 border border-purple-500/20">
+                <div className="bg-[#6b98a2]/10 rounded-xl p-4 border border-[#6b98a2]/20">
                   <div className="text-sm text-muted-foreground mb-1">Study Time</div>
-                  <div className="text-2xl font-bold text-purple-400">
+                  <div className="text-2xl font-bold text-[#6b98a2]">
                     {todayLog.focusedStudyMinutes} min
                   </div>
                 </div>
@@ -503,7 +504,7 @@ export function LearningIsland() {
                       {log.whatILearned || 'Learning session'}
                     </div>
                   </div>
-                  <div className="text-purple-400 font-medium">
+                  <div className="text-[#6b98a2] font-medium">
                     {log.focusedStudyMinutes}m
                   </div>
                   <div className="ml-3 flex gap-2">
@@ -544,7 +545,7 @@ export function LearningIsland() {
               exit={{ opacity: 0, y: 50 }}
               className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50"
             >
-              <div className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3">
+              <div className="bg-gradient-to-r from-[#6b98a2] to-[#8bb3bc] text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3">
                 <Sparkles className="w-6 h-6" />
                 <div>
                   <div className="font-medium">Great work!</div>
@@ -555,6 +556,6 @@ export function LearningIsland() {
           )}
         </AnimatePresence>
       </div>
-    </div>
+    </SceneShell>
   );
 }

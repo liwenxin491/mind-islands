@@ -2,7 +2,7 @@
 
 export type CharacterMood = 'happy' | 'neutral' | 'tired';
 
-export type CharacterType = 'owl' | 'puppy' | 'girl';
+export type CharacterType = 'otter';
 
 export type IslandType = 'body' | 'work' | 'learning' | 'relationships' | 'curiosity' | 'compassion';
 
@@ -185,6 +185,7 @@ export interface WorkoutScheduleItem {
 }
 
 export interface RoutineSettings {
+  timeZone: string; // IANA timezone, e.g. "America/Los_Angeles"
   sleepTargetTime: string; // "23:30"
   wakeTargetTime: string; // "07:30"
   mealTimes: {
@@ -228,6 +229,7 @@ export interface TodoItem {
   id: string;
   text: string;
   completed: boolean;
+  completedAt?: string;
   details?: string;
   deadline?: string;
   remindAt?: string;

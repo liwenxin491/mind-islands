@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="980" viewBox="0 0 1600 980" role="img" aria-labelledby="title desc">
+  <title id="title">Competitor matrix for Mind Islands</title>
+  <desc id="desc">Competitor matrix comparing Emotional Warmth and Structured Daily Reflection for Calm, Headspace, Daylio, Finch, Wysa, and Mind Islands.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fbf8ff"/>
+      <stop offset="100%" stop-color="#eef7ff"/>
+    </linearGradient>
+    <linearGradient id="mind" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#0891b2"/>
+    </linearGradient>
+    <linearGradient id="calm" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5aa7ff"/>
+      <stop offset="100%" stop-color="#2f68d8"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#1f2937" flood-opacity="0.10"/>
+    </filter>
+    <style>
+      .title { font: 700 40px Arial, Helvetica, sans-serif; fill: #111827; }
+      .subtitle { font: 500 21px Arial, Helvetica, sans-serif; fill: #4b5563; }
+      .axis { font: 700 24px Arial, Helvetica, sans-serif; fill: #374151; }
+      .tick { font: 500 18px Arial, Helvetica, sans-serif; fill: #6b7280; }
+      .note { font: 500 18px Arial, Helvetica, sans-serif; fill: #6b7280; }
+      .badgeText { font: 700 22px Arial, Helvetica, sans-serif; fill: #111827; }
+      .badgeTextInv { font: 700 24px Arial, Helvetica, sans-serif; fill: #ffffff; }
+      .small { font: 600 16px Arial, Helvetica, sans-serif; fill: #ffffff; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="980" fill="url(#bg)"/>
+  <rect x="62" y="52" width="1476" height="876" rx="34" fill="#ffffff" stroke="#e5e7eb"/>
+
+  <text x="120" y="128" class="title">Competitive Landscape</text>
+  <text x="120" y="164" class="subtitle">Illustrative positioning across emotional warmth and structured daily reflection</text>
+
+  <rect x="190" y="220" width="1180" height="620" rx="28" fill="#fafafc" stroke="#e5e7eb"/>
+
+  <line x1="300" y1="770" x2="1290" y2="770" stroke="#374151" stroke-width="4"/>
+  <line x1="300" y1="770" x2="300" y2="280" stroke="#374151" stroke-width="4"/>
+
+  <line x1="300" y1="525" x2="1290" y2="525" stroke="#e5e7eb" stroke-width="2" stroke-dasharray="8 8"/>
+  <line x1="795" y1="770" x2="795" y2="280" stroke="#e5e7eb" stroke-width="2" stroke-dasharray="8 8"/>
+
+  <text x="795" y="870" text-anchor="middle" class="axis">Emotional Warmth</text>
+  <text x="795" y="905" text-anchor="middle" class="tick">Low</text>
+  <text x="1255" y="905" text-anchor="end" class="tick">High</text>
+
+  <g transform="translate(120,540) rotate(-90)">
+    <text x="0" y="0" text-anchor="middle" class="axis">Structured Daily Reflection</text>
+    <text x="-230" y="-44" text-anchor="middle" class="tick">Low</text>
+    <text x="230" y="-44" text-anchor="middle" class="tick">High</text>
+  </g>
+
+  <text x="420" y="345" class="tick">Meditation-first</text>
+  <text x="1110" y="345" text-anchor="end" class="tick">High warmth + high structure</text>
+  <text x="420" y="738" class="tick">Low structure</text>
+  <text x="1110" y="738" text-anchor="end" class="tick">High daily integration</text>
+
+  <!-- Calm -->
+  <g transform="translate(525,635)" filter="url(#shadow)">
+    <rect x="-92" y="-34" width="184" height="68" rx="34" fill="#ffffff" stroke="#dbe7ff"/>
+    <g transform="translate(-62,-20)">
+      <rect x="0" y="0" width="40" height="40" rx="12" fill="url(#calm)"/>
+      <text x="20" y="26" text-anchor="middle" class="small" style="font-style:italic; font-size:18px;">calm</text>
+    </g>
+    <text x="2" y="10" class="badgeText">Calm</text>
+  </g>
+
+  <!-- Headspace -->
+  <g transform="translate(610,515)" filter="url(#shadow)">
+    <rect x="-112" y="-34" width="224" height="68" rx="34" fill="#ffffff" stroke="#fee4c7"/>
+    <g transform="translate(-82,-20)">
+      <circle cx="20" cy="20" r="18" fill="#f59e0b"/>
+    </g>
+    <text x="-28" y="10" class="badgeText">Headspace</text>
+  </g>
+
+  <!-- Daylio -->
+  <g transform="translate(900,455)" filter="url(#shadow)">
+    <rect x="-96" y="-34" width="192" height="68" rx="34" fill="#ffffff" stroke="#fde68a"/>
+    <g transform="translate(-66,-20)">
+      <rect x="0" y="0" width="40" height="40" rx="11" fill="#facc15"/>
+      <circle cx="14" cy="15" r="2.5" fill="#111827"/>
+      <circle cx="26" cy="15" r="2.5" fill="#111827"/>
+      <path d="M12 25 Q20 31 28 25" fill="none" stroke="#111827" stroke-width="2.5" stroke-linecap="round"/>
+    </g>
+    <text x="-2" y="10" class="badgeText">Daylio</text>
+  </g>
+
+  <!-- Finch -->
+  <g transform="translate(1035,405)" filter="url(#shadow)">
+    <rect x="-90" y="-34" width="180" height="68" rx="34" fill="#ffffff" stroke="#d9f99d"/>
+    <g transform="translate(-60,-20)">
+      <rect x="0" y="0" width="40" height="40" rx="12" fill="#84cc16"/>
+      <circle cx="20" cy="20" r="12" fill="#ffffff"/>
+      <circle cx="16" cy="18" r="2" fill="#111827"/>
+      <circle cx="24" cy="18" r="2" fill="#111827"/>
+      <polygon points="20,22 24,25 20,28 16,25" fill="#f59e0b"/>
+    </g>
+    <text x="0" y="10" class="badgeText">Finch</text>
+  </g>
+
+  <!-- Wysa -->
+  <g transform="translate(935,330)" filter="url(#shadow)">
+    <rect x="-86" y="-34" width="172" height="68" rx="34" fill="#ffffff" stroke="#c7d2fe"/>
+    <g transform="translate(-56,-20)">
+      <path d="M20 2 C30 2 36 10 36 22 C36 33 29 38 20 38 C11 38 4 33 4 22 C4 10 10 2 20 2 Z" fill="#4f46e5"/>
+      <ellipse cx="20" cy="23" rx="8" ry="10" fill="#ffffff"/>
+      <circle cx="16" cy="18" r="1.8" fill="#111827"/>
+      <circle cx="24" cy="18" r="1.8" fill="#111827"/>
+      <polygon points="20,22 24,25 20,27 16,25" fill="#f59e0b"/>
+    </g>
+    <text x="2" y="10" class="badgeText">Wysa</text>
+  </g>
+
+  <!-- Mind Islands -->
+  <g transform="translate(1160,300)" filter="url(#shadow)">
+    <rect x="-158" y="-46" width="316" height="92" rx="46" fill="url(#mind)"/>
+    <g transform="translate(-126,-24)">
+      <rect x="0" y="0" width="48" height="48" rx="14" fill="rgba(255,255,255,0.18)"/>
+      <path d="M20 12 C13 16 12 28 21 32 C29 35 35 30 36 24 C30 28 24 24 25 17 C25 15 25 13 26 12 C24 11 22 11 20 12 Z" fill="#ffffff"/>
+      <path d="M10 36 C18 30 30 30 38 36" fill="none" stroke="#fef08a" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="34" cy="12" r="2" fill="#fef08a"/>
+    </g>
+    <text x="-54" y="-2" class="badgeTextInv">Mind Islands</text>
+    <text x="-54" y="24" class="small" style="font-size:17px;">white-space opportunity</text>
+  </g>
+
+  <!-- Quadrant helper -->
+  <rect x="970" y="246" width="280" height="128" rx="24" fill="#f5f3ff" stroke="#ddd6fe"/>
+  <text x="995" y="286" class="badgeText" style="font-size:24px;">Opportunity Zone</text>
+  <text x="995" y="317" class="subtitle" style="font-size:18px;">High emotional warmth</text>
+  <text x="995" y="343" class="subtitle" style="font-size:18px;">High daily structure</text>
+
+  <text x="120" y="892" class="note">Use this slide to show that current products each own part of the space, but few combine emotional safety, daily structure, and reflective support in one product.</text>
+</svg>

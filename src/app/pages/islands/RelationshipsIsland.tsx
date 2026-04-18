@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router';
 import { ArrowLeft, Heart, MessageCircle, Phone, Users, Sparkles, Check, X, Pencil, Trash2 } from 'lucide-react';
 import { useMindIslands } from '../../context/MindIslandsContext';
 import { Button } from '../../components/ui/button';
+import { SceneShell } from '../../components/SceneShell';
 import type { RelationshipCategory } from '../../types';
 import { getDateKey } from '../../lib/time';
 
@@ -174,8 +175,8 @@ export function RelationshipsIsland() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1a0f2e] via-[#2d1b4f] to-[#1a0f2e]">
-      <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <SceneShell>
+      <div className="mx-auto max-w-6xl p-6 space-y-6">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -209,7 +210,7 @@ export function RelationshipsIsland() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-pink-500/10 to-purple-500/10 backdrop-blur-md border border-pink-500/20 rounded-2xl p-4"
+          className="bg-gradient-to-r from-[#8bb3bc]/12 to-[#6b98a2]/12 backdrop-blur-md border border-[#8bb3bc]/20 rounded-2xl p-4"
         >
           <p className="text-sm text-foreground/90 text-center">
             💝 You don't need to fill every category daily. <span className="font-medium">One meaningful connection is wonderful.</span>
@@ -638,7 +639,7 @@ export function RelationshipsIsland() {
               exit={{ opacity: 0, y: 50 }}
               className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50"
             >
-              <div className="bg-gradient-to-r from-pink-500 to-rose-500 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3">
+              <div className="bg-gradient-to-r from-[#6b98a2] to-[#8bb3bc] text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3">
                 <Heart className="w-6 h-6" />
                 <div>
                   <div className="font-medium">Connection logged! 💝</div>
@@ -649,6 +650,6 @@ export function RelationshipsIsland() {
           )}
         </AnimatePresence>
       </div>
-    </div>
+    </SceneShell>
   );
 }

@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mind Islands Mobile User Flow Concepts</title>
+    <link rel="stylesheet" href="./mobile-userflows.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="intro-card">
+        <p class="eyebrow">Mind Islands · Mobile IA Concepts</p>
+        <h1>Three complete user flow directions for the otter-first app</h1>
+        <p class="lede">
+          Assumption used here: <strong>QRC = Review / gentle insights / weekly reflection</strong>.
+          We can rename it later without changing the structure.
+        </p>
+        <div class="intro-tags">
+          <span>Sea otter = self-externalization</span>
+          <span>AI log = main record entry</span>
+          <span>Islands stay visible in product world</span>
+          <span>Self-compassion remains distinct</span>
+        </div>
+      </section>
+
+      <section class="concept-grid">
+        <article class="concept-card">
+          <div class="concept-copy">
+            <p class="concept-label">Option A</p>
+            <h2>Home = Otter Home</h2>
+            <p>
+              The clearest and most familiar structure. Users land on a dedicated home screen
+              with the otter, then branch to islands, to-do, and profile from the bottom nav.
+            </p>
+            <ul>
+              <li><strong>Best for:</strong> easy onboarding and first-time clarity</li>
+              <li><strong>Main CTA:</strong> tap otter to talk</li>
+              <li><strong>Self-Compassion:</strong> secondary button on home</li>
+              <li><strong>QRC / Review:</strong> inside Me</li>
+            </ul>
+          </div>
+
+          <div class="phone-frame">
+            <div class="screen screen-water">
+              <header class="topbar">
+                <div>
+                  <p class="top-meta">Tuesday · gentle restart</p>
+                  <h3>Welcome back</h3>
+                </div>
+                <div class="pill">5:42 pm</div>
+              </header>
+
+              <section class="hero-stack">
+                <img
+                  class="otter-hero"
+                  src="../../src/app/assets/sea-otter.png"
+                  alt="Sea otter avatar"
+                />
+                <div class="otter-bubble">
+                  <p>I can listen first. We don’t need to organize everything before we begin.</p>
+                </div>
+              </section>
+
+              <section class="cta-stack">
+                <button class="primary-cta">Tap otter to talk</button>
+                <div class="mini-actions">
+                  <button>Quick add</button>
+                  <button>Self-Compassion</button>
+                </div>
+              </section>
+
+              <section class="summary-card">
+                <p class="small-label">Today’s latest shell</p>
+                <p>“I finally finished the draft I kept avoiding.”</p>
+              </section>
+
+              <section class="summary-card">
+                <p class="small-label">To-Do nudge</p>
+                <p>One task still open: send the advisor email before 7 pm.</p>
+              </section>
+
+              <nav class="bottom-nav">
+                <a class="active" href="#">Home</a>
+                <a href="#">Islands</a>
+                <a href="#">To-Do</a>
+                <a href="#">Me</a>
+              </nav>
+            </div>
+          </div>
+
+          <div class="flow-strip">
+            <span>Open app</span>
+            <span>Tap otter</span>
+            <span>Log or reflect</span>
+            <span>AI stores to island</span>
+          </div>
+        </article>
+
+        <article class="concept-card highlight">
+          <div class="concept-copy">
+            <p class="concept-label">Option B · Recommended</p>
+            <h2>Otter as Floating Global Entry</h2>
+            <p>
+              The otter is not one tab among others. It floats above the app and acts as the
+              universal emotional entry point. Bottom nav handles the stable destinations.
+            </p>
+            <ul>
+              <li><strong>Best for:</strong> strongest product identity</li>
+              <li><strong>Main CTA:</strong> floating otter button from any page</li>
+              <li><strong>Self-Compassion:</strong> mode switch inside chat</li>
+              <li><strong>QRC / Review:</strong> dedicated bottom tab</li>
+            </ul>
+          </div>
+
+          <div class="phone-frame">
+            <div class="screen screen-water">
+              <header class="topbar">
+                <div>
+                  <p class="top-meta">This week’s tide</p>
+                  <h3>Your islands</h3>
+                </div>
+                <div class="pill">3 new shells</div>
+              </header>
+
+              <section class="world-grid">
+                <div class="island-pill body">Body</div>
+                <div class="island-pill work">Work</div>
+                <div class="island-pill learning">Learning</div>
+                <div class="island-pill relation">Relations</div>
+                <div class="island-pill curiosity">Curiosity</div>
+                <div class="island-pill compassion">Self-Comp</div>
+              </section>
+
+              <section class="summary-card wide-gap">
+                <p class="small-label">Recent gentle review</p>
+                <p>You’ve been returning to Learning and Work. Energy dips happened after 9 pm.</p>
+              </section>
+
+              <section class="summary-card">
+                <p class="small-label">Tap the otter anytime</p>
+                <p>
+                  Chat sheet opens with two modes: <strong>Log with me</strong> and
+                  <strong>Sit with me</strong>.
+                </p>
+              </section>
+
+              <button class="floating-otter-button" type="button">
+                <img
+                  class="floating-otter"
+                  src="../../src/app/assets/sea-otter.png"
+                  alt="Floating sea otter entry button"
+                />
+              </button>
+
+              <nav class="bottom-nav">
+                <a class="active" href="#">Islands</a>
+                <a href="#">To-Do</a>
+                <a href="#">Review</a>
+                <a href="#">Me</a>
+              </nav>
+            </div>
+          </div>
+
+          <div class="flow-strip">
+            <span>Any page</span>
+            <span>Tap otter</span>
+            <span>Choose Log / Sit</span>
+            <span>Return to island or task</span>
+          </div>
+        </article>
+
+        <article class="concept-card">
+          <div class="concept-copy">
+            <p class="concept-label">Option C</p>
+            <h2>Talk-First</h2>
+            <p>
+              The app opens directly into conversation. This is the strongest version of “AI log
+              assistant as default,” with islands becoming the world view users open after talking.
+            </p>
+            <ul>
+              <li><strong>Best for:</strong> fastest capture and strongest chat habit</li>
+              <li><strong>Main CTA:</strong> input is already open</li>
+              <li><strong>Self-Compassion:</strong> top segmented control</li>
+              <li><strong>QRC / Review:</strong> inside World or Me</li>
+            </ul>
+          </div>
+
+          <div class="phone-frame">
+            <div class="screen screen-water">
+              <header class="topbar">
+                <div>
+                  <p class="top-meta">Talk first</p>
+                  <h3>What happened today?</h3>
+                </div>
+                <div class="pill">Draft</div>
+              </header>
+
+              <section class="segmented">
+                <button class="selected">Record</button>
+                <button>Reflect</button>
+              </section>
+
+              <section class="hero-stack compact">
+                <img
+                  class="otter-hero smaller"
+                  src="../../src/app/assets/sea-otter.png"
+                  alt="Sea otter avatar"
+                />
+                <div class="otter-bubble narrower">
+                  <p>I can hold the details with you first, and sort them after.</p>
+                </div>
+              </section>
+
+              <section class="input-shell">
+                <p>I finished class, skipped lunch, then felt weirdly proud after sending my notes.</p>
+                <div class="chip-row">
+                  <span>school</span>
+                  <span>body</span>
+                  <span>small win</span>
+                </div>
+              </section>
+
+              <section class="summary-card">
+                <p class="small-label">After send</p>
+                <p>AI sorts this into Learning + Body, then offers “open those islands”.</p>
+              </section>
+
+              <nav class="bottom-nav">
+                <a class="active" href="#">Talk</a>
+                <a href="#">World</a>
+                <a href="#">To-Do</a>
+                <a href="#">Me</a>
+              </nav>
+            </div>
+          </div>
+
+          <div class="flow-strip">
+            <span>Open app</span>
+            <span>Speak immediately</span>
+            <span>AI sorts memory</span>
+            <span>Open world if needed</span>
+          </div>
+        </article>
+      </section>
+
+      <section class="comparison-table">
+        <h2>Which one fits your product intention best?</h2>
+        <div class="table-grid">
+          <div class="table-head">Question</div>
+          <div class="table-head">A</div>
+          <div class="table-head">B</div>
+          <div class="table-head">C</div>
+
+          <div>Does the otter feel like the soul of the app?</div>
+          <div>High</div>
+          <div class="best">Very high</div>
+          <div>Very high</div>
+
+          <div>Are the islands still visible as a world?</div>
+          <div>Medium</div>
+          <div class="best">High</div>
+          <div>Medium-low</div>
+
+          <div>Is the structure easy for first-time users?</div>
+          <div class="best">Very high</div>
+          <div>High</div>
+          <div>Medium</div>
+
+          <div>Does AI log become the main habit?</div>
+          <div>Medium</div>
+          <div>High</div>
+          <div class="best">Very high</div>
+
+          <div>My recommendation for current direction</div>
+          <div>Safe</div>
+          <div class="best">Best balance</div>
+          <div>Most radical</div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

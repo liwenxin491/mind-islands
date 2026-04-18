@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mind Islands | Otter Avatar Directions</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Manrope:wght@400;500;600&display=swap');
+      :root {
+        --bg: #1c1726;
+        --panel: rgba(39, 30, 52, 0.84);
+        --line: rgba(255,255,255,0.1);
+        --text: #f5efee;
+        --muted: #cabdbb;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        color: var(--text);
+        font-family: 'Manrope', sans-serif;
+        background:
+          radial-gradient(circle at 18% 12%, rgba(126, 97, 137, 0.18), transparent 25%),
+          radial-gradient(circle at 82% 20%, rgba(151, 131, 110, 0.14), transparent 22%),
+          linear-gradient(180deg, #1c1726 0%, #34273e 100%);
+      }
+      .page {
+        width: min(1280px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 36px 0 52px;
+      }
+      .hero, .card {
+        border: 1px solid var(--line);
+        border-radius: 30px;
+        background: var(--panel);
+        box-shadow: 0 24px 60px rgba(11, 8, 16, 0.25);
+        backdrop-filter: blur(16px);
+      }
+      .hero {
+        padding: 28px;
+        margin-bottom: 22px;
+      }
+      h1, h2 { font-family: 'Fraunces', serif; margin: 0; letter-spacing: -0.02em; }
+      h1 { font-size: clamp(2.4rem, 4vw, 4rem); line-height: 0.96; }
+      p { color: var(--muted); line-height: 1.6; }
+      .eyebrow {
+        display: inline-block;
+        padding: 7px 12px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255,255,255,0.05);
+        font-size: 13px;
+        margin-bottom: 14px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px;
+      }
+      .card { padding: 18px; }
+      .card img {
+        width: 100%;
+        display: block;
+        border-radius: 22px;
+        border: 1px solid rgba(255,255,255,0.08);
+        margin-bottom: 14px;
+      }
+      ul { margin: 10px 0 0; padding-left: 18px; color: var(--muted); }
+      li { margin: 8px 0; }
+      @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <span class="eyebrow">Avatar exploration only</span>
+        <h1>Three sea otter directions with more warmth, softness, and character.</h1>
+        <p>
+          These are illustration-first concept directions for the core companion character.
+          They are intentionally more organic and less geometric than the current in-app otter,
+          with softer expressions, gentler silhouette variation, and more emotional presence.
+        </p>
+      </section>
+
+      <section class="grid">
+        <article class="card">
+          <img src="./otter-storybook-plush.svg" alt="Storybook plush otter direction" />
+          <h2>01. Storybook Plush</h2>
+          <p>Warmest and most reassuring. Best if you want the otter to feel like a quiet illustrated character from a healing picture book.</p>
+          <ul>
+            <li>Softest emotional read</li>
+            <li>Most cuddly silhouette</li>
+            <li>Feels intimate and safe</li>
+          </ul>
+        </article>
+        <article class="card">
+          <img src="./otter-lagoon-watercolor.svg" alt="Lagoon watercolor otter direction" />
+          <h2>02. Lagoon Watercolor</h2>
+          <p>Airier and more painterly. Best if you want the otter to feel more dreamlike, reflective, and woven into the watery atmosphere.</p>
+          <ul>
+            <li>Most poetic and gentle</li>
+            <li>Strong “memory” feeling</li>
+            <li>Less mascot, more story world</li>
+          </ul>
+        </article>
+        <article class="card">
+          <img src="./otter-tideglass-2_5d.svg" alt="Tideglass 2.5D otter direction" />
+          <h2>03. Tideglass 2.5D</h2>
+          <p>Most dimensional and app-ready. Best if you want a stronger 2.5D presence while keeping the character calm and emotionally readable.</p>
+          <ul>
+            <li>Strongest depth and lighting</li>
+            <li>Good for motion later</li>
+            <li>Closest to a polished app character system</li>
+          </ul>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

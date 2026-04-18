@@ -4,13 +4,11 @@ import { useNavigate } from 'react-router';
 import { useMindIslands } from '../context/MindIslandsContext';
 import { IllustratedCharacter } from '../components/IllustratedCharacter';
 import { Button } from '../components/ui/button';
-import type { CharacterType } from '../types';
 
 export function Onboarding() {
   const navigate = useNavigate();
   const { progress, selectCharacter, completeOnboarding } = useMindIslands();
-  const [step, setStep] = useState<'welcome' | 'character' | 'name' | 'intro'>('welcome');
-  const [selectedCharacter, setSelectedCharacter] = useState<CharacterType>('owl');
+  const [step, setStep] = useState<'welcome' | 'name' | 'intro'>('welcome');
   const [characterName, setCharacterName] = useState('');
 
   useEffect(() => {
@@ -19,14 +17,9 @@ export function Onboarding() {
     }
   }, [progress.onboardingComplete, navigate]);
 
-  const handleCharacterSelect = (type: CharacterType) => {
-    setSelectedCharacter(type);
-    setStep('name');
-  };
-
   const handleNameSubmit = () => {
     if (characterName.trim()) {
-      selectCharacter(selectedCharacter, characterName.trim());
+      selectCharacter(characterName.trim());
       setStep('intro');
     }
   };
@@ -86,56 +79,12 @@ export function Onboarding() {
               </div>
 
               <Button
-                onClick={() => setStep('character')}
+                onClick={() => setStep('name')}
                 className="bg-primary hover:bg-primary/80 text-primary-foreground px-8 py-6 text-lg"
                 size="lg"
               >
                 Begin Your Journey
               </Button>
-            </motion.div>
-          )}
-
-          {/* Character Selection Step */}
-          {step === 'character' && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-8"
-            >
-              <div className="text-center space-y-3">
-                <h2 className="text-4xl font-medium text-foreground">Choose Your Companion</h2>
-                <p className="text-lg text-muted-foreground">
-                  This character represents you on your journey
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {(['owl', 'puppy', 'girl'] as CharacterType[]).map((type) => (
-                  <motion.button
-                    key={type}
-                    onClick={() => handleCharacterSelect(type)}
-                    className={`bg-background/10 backdrop-blur-md border-2 rounded-2xl p-8 transition-all ${
-                      selectedCharacter === type
-                        ? 'border-primary shadow-lg shadow-primary/20'
-                        : 'border-white/10 hover:border-white/30'
-                    }`}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <div className="flex flex-col items-center gap-4">
-                      <IllustratedCharacter type={type} mood="happy" size="md" />
-                      <div className="text-center">
-                        <p className="text-lg font-medium text-foreground capitalize">{type}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {type === 'owl' && 'Wise and contemplative'}
-                          {type === 'puppy' && 'Energetic and loyal'}
-                          {type === 'girl' && 'Gentle and creative'}
-                        </p>
-                      </div>
-                    </div>
-                  </motion.button>
-                ))}
-              </div>
             </motion.div>
           )}
 
@@ -147,7 +96,7 @@ export function Onboarding() {
               className="space-y-8"
             >
               <div className="text-center space-y-6">
-                <IllustratedCharacter type={selectedCharacter} mood="happy" size="lg" />
+                <IllustratedCharacter type="otter" mood="happy" size="lg" />
                 <div className="space-y-3">
                   <h2 className="text-3xl font-medium text-foreground">What shall we call you?</h2>
                   <p className="text-muted-foreground">
@@ -174,7 +123,7 @@ export function Onboarding() {
 
                 <div className="flex gap-3">
                   <Button
-                    onClick={() => setStep('character')}
+                    onClick={() => setStep('welcome')}
                     variant="outline"
                     className="flex-1"
                   >
@@ -200,7 +149,7 @@ export function Onboarding() {
               className="space-y-8"
             >
               <div className="text-center space-y-6">
-                <IllustratedCharacter type={selectedCharacter} mood="happy" size="lg" />
+                <IllustratedCharacter type="otter" mood="happy" size="lg" />
                 <h2 className="text-4xl font-medium text-foreground">
                   Welcome, {characterName}!
                 </h2>

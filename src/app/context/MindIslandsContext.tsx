@@ -3,7 +3,6 @@ import type {
   AIInsightPayload,
   BreathingSession,
   CharacterMood,
-  CharacterType,
   CompassionJournal,
   CuriosityIdea,
   CuriosityLog,
@@ -21,7 +20,7 @@ import type {
   WorkItem,
 } from '../types';
 import type { ChatMessage } from '../types';
-import { getDateKey, getNowInAppTimeZoneISO } from '../lib/time';
+import { getAppTimeZone, getDateKey, getNowInAppTimeZoneISO, setAppTimeZone } from '../lib/time';
 import { useAuth } from './AuthContext';
 
 interface MindIslandsContextType {
@@ -29,7 +28,7 @@ interface MindIslandsContextType {
 
   // Character
   updateCharacterMood: (mood: CharacterMood) => void;
-  selectCharacter: (type: CharacterType, name: string) => void;
+  selectCharacter: (name: string) => void;
   completeOnboarding: () => void;
 
   // Islands
@@ -95,6 +94,7 @@ interface MindIslandsContextType {
   setTodoImportance: (todoId: string, importance: number) => void;
   toggleTodo: (todoId: string) => void;
   deleteTodo: (todoId: string) => void;
+  cleanupCompletedTodos: (olderThanDays: number) => number;
 }
 
 const MindIslandsContext = createContext<MindIslandsContextType | undefined>(undefined);
@@ -281,6 +281,7 @@ const normalizeTodoRecord = (
   const details = todo.details?.trim() || undefined;
   const deadline = normalizeDateTime(todo.deadline);
   const remindAt = normalizeDateTime(todo.remindAt);
+  const completedAt = normalizeDateTime(todo.completedAt);
   const estimatedMinutes =
     typeof todo.estimatedMinutes === 'number' && Number.isFinite(todo.estimatedMinutes)
       ? Math.max(5, Math.round(todo.estimatedMinutes))
@@ -306,6 +307,7 @@ const normalizeTodoRecord = (
     details,
     deadline,
     remindAt,
+    completedAt,
     estimatedMinutes: computed.estimatedMinutes,
     importance,
     priorityScore: computed.priorityScore,
@@ -324,6 +326,7 @@ const createDefaultWorkoutSchedule = () =>
   }));
 
 const createDefaultRoutineSettings = (): RoutineSettings => ({
+  timeZone: getAppTimeZone(),
   sleepTargetTime: '23:30',
   wakeTargetTime: '07:30',
   mealTimes: {
@@ -499,7 +502,7 @@ const defaultProgress: UserProgress = {
   character: {
     mood: 'neutral',
     name: 'Me',
-    type: 'owl',
+    type: 'otter',
     level: 1,
     experience: 0,
     environmentState: {
@@ -586,6 +589,19 @@ const defaultProgress: UserProgress = {
 const mergeRoutineSettings = (parsedRoutine: any): RoutineSettings => {
   const defaults = createDefaultRoutineSettings();
   if (!parsedRoutine) return defaults;
+  const routineTimeZone =
+    typeof parsedRoutine.timeZone === 'string' &&
+    parsedRoutine.timeZone.trim() &&
+    (() => {
+      try {
+        Intl.DateTimeFormat('en-US', { timeZone: parsedRoutine.timeZone }).format();
+        return true;
+      } catch {
+        return false;
+      }
+    })()
+      ? parsedRoutine.timeZone.trim()
+      : defaults.timeZone;
 
   const incomingSchedule = Array.isArray(parsedRoutine.workoutSchedule)
     ? parsedRoutine.workoutSchedule
@@ -605,6 +621,7 @@ const mergeRoutineSettings = (parsedRoutine: any): RoutineSettings => {
   });
 
   return {
+    timeZone: routineTimeZone,
     sleepTargetTime: normalizeTime(parsedRoutine.sleepTargetTime) || defaults.sleepTargetTime,
     wakeTargetTime: normalizeTime(parsedRoutine.wakeTargetTime) || defaults.wakeTargetTime,
     mealTimes: {
@@ -662,6 +679,7 @@ const hydrateProgress = (input: any): UserProgress => {
     character: {
       ...defaultProgress.character,
       ...parsed.character,
+      type: 'otter',
       environmentState: parsed.character?.environmentState || defaultProgress.character.environmentState,
     },
   };
@@ -746,6 +764,11 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, [user]);
+
+  useEffect(() => {
+    const nextZone = progress.routineSettings?.timeZone || getAppTimeZone();
+    setAppTimeZone(nextZone);
+  }, [progress.routineSettings?.timeZone]);
 
   useEffect(() => {
     if (OFFLINE_MODE) {
@@ -879,10 +902,10 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
     }));
   };
 
-  const selectCharacter = (type: CharacterType, name: string) => {
+  const selectCharacter = (name: string) => {
     setProgress((prev) => ({
       ...prev,
-      character: { ...prev.character, type, name },
+      character: { ...prev.character, type: 'otter', name },
     }));
   };
 
@@ -1553,6 +1576,7 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
           ? normalizeTodoRecord({
               ...todo,
               completed: !todo.completed,
+              completedAt: !todo.completed ? getNowInAppTimeZoneISO() : undefined,
             })
           : todo,
       ),
@@ -1564,6 +1588,30 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
       ...prev,
       todos: prev.todos.filter((todo) => todo.id !== todoId),
     }));
+  };
+
+  const cleanupCompletedTodos = (olderThanDays: number) => {
+    let removed = 0;
+    const thresholdMs = olderThanDays * 24 * 60 * 60 * 1000;
+    const now = new Date(getNowInAppTimeZoneISO()).getTime();
+
+    setProgress((prev) => {
+      const nextTodos = prev.todos.filter((todo) => {
+        if (!todo.completed || !todo.completedAt) return true;
+        const completedAtMs = new Date(todo.completedAt).getTime();
+        if (!Number.isFinite(completedAtMs)) return true;
+        const shouldRemove = now - completedAtMs >= thresholdMs;
+        if (shouldRemove) removed += 1;
+        return !shouldRemove;
+      });
+
+      return {
+        ...prev,
+        todos: nextTodos,
+      };
+    });
+
+    return removed;
   };
 
   return (
@@ -1609,6 +1657,7 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
         setTodoImportance,
         toggleTodo,
         deleteTodo,
+        cleanupCompletedTodos,
       }}
     >
       {children}

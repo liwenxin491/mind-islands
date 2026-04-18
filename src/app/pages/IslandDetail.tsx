@@ -8,6 +8,7 @@ import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { Slider } from '../components/ui/slider';
 import { StreakDisplay } from '../components/StreakDisplay';
+import { SceneShell } from '../components/SceneShell';
 import type { IslandType, CheckIn } from '../types';
 import { toast } from 'sonner';
 
@@ -50,7 +51,8 @@ export function IslandDetail() {
 
   if (showSuccess) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#1a0f2e] via-[#2d1b4f] to-[#1a0f2e] flex items-center justify-center p-6">
+      <SceneShell>
+        <div className="flex min-h-full items-center justify-center p-6">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -76,35 +78,14 @@ export function IslandDetail() {
             Your {island.name} island is glowing with care 💫
           </p>
         </motion.div>
-      </div>
+        </div>
+      </SceneShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1a0f2e] via-[#2d1b4f] to-[#1a0f2e]">
-      {/* Starry background */}
-      <div className="absolute inset-0 overflow-hidden">
-        {[...Array(30)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-1 h-1 bg-white rounded-full"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-            }}
-            animate={{
-              opacity: [0.2, 1, 0.2],
-            }}
-            transition={{
-              duration: 2 + Math.random() * 2,
-              repeat: Infinity,
-              delay: Math.random() * 2,
-            }}
-          />
-        ))}
-      </div>
-
-      <div className="relative z-10 max-w-4xl mx-auto p-6 md:p-12">
+    <SceneShell>
+      <div className="relative z-10 mx-auto max-w-4xl p-6 md:p-12">
         {/* Header */}
         <motion.div
           initial={{ y: -20, opacity: 0 }}
@@ -272,6 +253,6 @@ export function IslandDetail() {
           </div>
         </motion.div>
       </div>
-    </div>
+    </SceneShell>
   );
 }

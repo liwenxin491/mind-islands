@@ -1,6 +1,51 @@
-export const APP_TIME_ZONE = 'America/Los_Angeles';
+export const DEFAULT_APP_TIME_ZONE = 'America/Los_Angeles';
+const APP_TIME_ZONE_STORAGE_KEY = 'mindIslands:timeZone:v1';
+let appTimeZone = DEFAULT_APP_TIME_ZONE;
 
-const getTimeParts = (value: Date, timeZone = APP_TIME_ZONE) => {
+const isValidTimeZone = (timeZone = '') => {
+  try {
+    Intl.DateTimeFormat('en-US', { timeZone }).format();
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const readStoredTimeZone = () => {
+  if (typeof window === 'undefined') return '';
+  try {
+    return localStorage.getItem(APP_TIME_ZONE_STORAGE_KEY) || '';
+  } catch {
+    return '';
+  }
+};
+
+const initAppTimeZone = () => {
+  const stored = readStoredTimeZone();
+  if (stored && isValidTimeZone(stored)) {
+    appTimeZone = stored;
+    return;
+  }
+  appTimeZone = DEFAULT_APP_TIME_ZONE;
+};
+
+initAppTimeZone();
+
+export const getAppTimeZone = () => appTimeZone;
+
+export const setAppTimeZone = (nextTimeZone = DEFAULT_APP_TIME_ZONE) => {
+  const normalized = isValidTimeZone(nextTimeZone) ? nextTimeZone : DEFAULT_APP_TIME_ZONE;
+  appTimeZone = normalized;
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(APP_TIME_ZONE_STORAGE_KEY, normalized);
+    } catch {
+      // ignore storage write failures
+    }
+  }
+};
+
+const getTimeParts = (value: Date, timeZone = getAppTimeZone()) => {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone,
     year: 'numeric',
@@ -23,7 +68,7 @@ const getTimeParts = (value: Date, timeZone = APP_TIME_ZONE) => {
   };
 };
 
-const getTimeZoneOffsetMinutes = (value: Date, timeZone = APP_TIME_ZONE) => {
+const getTimeZoneOffsetMinutes = (value: Date, timeZone = getAppTimeZone()) => {
   const parts = getTimeParts(value, timeZone);
   const asUTC = Date.UTC(
     Number(parts.year),
@@ -44,18 +89,18 @@ const formatOffset = (offsetMinutes: number) => {
   return `${sign}${hh}:${mm}`;
 };
 
-export function getDateKey(value: Date = new Date(), timeZone = APP_TIME_ZONE): string {
+export function getDateKey(value: Date = new Date(), timeZone = getAppTimeZone()): string {
   const parts = getTimeParts(value, timeZone);
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
-export function getNowInAppTimeZoneISO(value: Date = new Date(), timeZone = APP_TIME_ZONE): string {
+export function getNowInAppTimeZoneISO(value: Date = new Date(), timeZone = getAppTimeZone()): string {
   const parts = getTimeParts(value, timeZone);
   const offset = formatOffset(getTimeZoneOffsetMinutes(value, timeZone));
   return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}${offset}`;
 }
 
-export function formatTime24(value: string | Date, timeZone = APP_TIME_ZONE): string {
+export function formatTime24(value: string | Date, timeZone = getAppTimeZone()): string {
   const date = value instanceof Date ? value : new Date(value);
   return date.toLocaleTimeString('en-GB', {
     timeZone,
@@ -65,7 +110,7 @@ export function formatTime24(value: string | Date, timeZone = APP_TIME_ZONE): st
   });
 }
 
-export function formatDate24(value: string | Date, timeZone = APP_TIME_ZONE): string {
+export function formatDate24(value: string | Date, timeZone = getAppTimeZone()): string {
   const date = value instanceof Date ? value : new Date(value);
   return date.toLocaleDateString('en-GB', {
     timeZone,

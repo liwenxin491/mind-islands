@@ -30,7 +30,6 @@ function AppContent() {
   return (
     <MindIslandsProvider>
       <RouterProvider router={router} />
-      <LanguageSwitcher />
       <Toaster
         position="top-center"
         toastOptions={{

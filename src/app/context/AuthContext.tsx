@@ -12,11 +12,7 @@ interface AuthContextValue {
   loading: boolean;
   setupError: string | null;
   login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
-  register: (
-    username: string,
-    email: string,
-    password: string,
-  ) => Promise<{ ok: boolean; error?: string }>;
+  register: (username: string, email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -36,6 +32,7 @@ const parseErrorMessage = (errorCode = 'unknown_error') => {
     invalid_email: 'Please enter a valid email address.',
     invalid_password: 'Password should be at least 8 characters.',
     user_already_exists: 'This email or username is already registered.',
+    email_already_registered: 'This email is already registered.',
     invalid_credentials: 'Email or password is incorrect.',
     database_not_configured: 'Server database is not configured yet.',
     jwt_secret_not_configured: 'Server auth secret is missing.',

@@ -20,6 +20,7 @@ import {
 import { useMindIslands } from '../../context/MindIslandsContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { Button } from '../../components/ui/button';
+import { SceneShell } from '../../components/SceneShell';
 import { formatTime24, getDateKey, getNowInAppTimeZoneISO } from '../../lib/time';
 
 type IdeaDraft = {
@@ -637,8 +638,8 @@ export function CuriosityIsland() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1a0f2e] via-[#2d1b4f] to-[#1a0f2e]">
-      <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <SceneShell>
+      <div className="mx-auto max-w-6xl p-6 space-y-6">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1098,7 +1099,7 @@ export function CuriosityIsland() {
               </p>
 
               <div className="h-[430px] flex flex-col">
-                <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1">
+                <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar space-y-4 pr-1">
                   {ideaChatHistory.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground">
                       <Brain className="w-12 h-12 mx-auto mb-3 opacity-50" />
@@ -1361,7 +1362,7 @@ export function CuriosityIsland() {
                                 </button>
 
                                 {isExpanded && (
-                                  <div className="mt-2 space-y-2 rounded-lg border border-white/10 bg-black/10 p-3 max-h-56 overflow-y-auto">
+                                  <div className="mt-2 max-h-56 space-y-2 overflow-y-auto hide-scrollbar rounded-lg border border-white/10 bg-black/10 p-3">
                                     {conversation.map((turn, index) => (
                                       <div
                                         key={`${idea.id}-turn-${index}-${turn.timestamp}`}
@@ -1451,6 +1452,6 @@ export function CuriosityIsland() {
           )}
         </AnimatePresence>
       </div>
-    </div>
+    </SceneShell>
   );
 }

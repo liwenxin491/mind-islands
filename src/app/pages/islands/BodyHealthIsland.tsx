@@ -15,8 +15,19 @@ import {
 } from 'lucide-react';
 import { useMindIslands } from '../../context/MindIslandsContext';
 import { Button } from '../../components/ui/button';
+import { SceneShell } from '../../components/SceneShell';
 import type { HealthCheckIn } from '../../types';
 import { getDateKey } from '../../lib/time';
+
+const TIME_ZONE_OPTIONS = [
+  { value: 'America/Los_Angeles', label: 'Pacific Time (US & Canada)' },
+  { value: 'America/Denver', label: 'Mountain Time (US & Canada)' },
+  { value: 'America/Chicago', label: 'Central Time (US & Canada)' },
+  { value: 'America/New_York', label: 'Eastern Time (US & Canada)' },
+  { value: 'Europe/London', label: 'London' },
+  { value: 'Asia/Shanghai', label: 'China Standard Time' },
+  { value: 'Asia/Tokyo', label: 'Japan Standard Time' },
+];
 
 export function BodyHealthIsland() {
   const navigate = useNavigate();
@@ -118,8 +129,8 @@ export function BodyHealthIsland() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1a0f2e] via-[#2d1b4f] to-[#1a0f2e]">
-      <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <SceneShell>
+      <div className="mx-auto max-w-6xl p-6 space-y-6">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -235,7 +246,7 @@ export function BodyHealthIsland() {
             <div className="space-y-6" onDoubleClick={() => setShowCheckInForm(true)}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex items-center gap-4 bg-white/5 rounded-xl p-4">
-                  <Moon className="w-6 h-6 text-purple-400" />
+                  <Moon className="w-6 h-6 text-[#6b98a2]" />
                   <div>
                     <div className="text-sm text-muted-foreground">Sleep</div>
                     <div className="text-lg text-foreground">
@@ -535,6 +546,21 @@ export function BodyHealthIsland() {
               </div>
 
               <div className="space-y-3">
+                <label className="text-sm text-muted-foreground">Time Zone</label>
+                <select
+                  value={routine.timeZone}
+                  onChange={(e) => updateRoutineSettings({ timeZone: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-foreground"
+                >
+                  {TIME_ZONE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-3">
                 <label className="text-sm text-muted-foreground">
                   Reminder Lead Time (minutes before target)
                 </label>
@@ -606,6 +632,6 @@ export function BodyHealthIsland() {
           </div>
         </motion.div>
       </div>
-    </div>
+    </SceneShell>
   );
 }

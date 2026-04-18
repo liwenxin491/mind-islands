@@ -33,12 +33,12 @@ export function StreakDisplay({ streak, label = 'Day Streak', size = 'md' }: Str
 
   if (streak === 0) {
     return (
-      <div className={`${classes.container} bg-muted/30 rounded-2xl border border-border text-center`}>
+      <div className={`${classes.container} rounded-2xl border border-[#c7d9de] bg-[rgba(230,239,243,0.78)] text-center`}>
         <div className="flex flex-col items-center gap-2">
-          <div className="text-muted-foreground">
+          <div className="text-[#7f9da7]">
             <TrendingUp className={classes.icon} />
           </div>
-          <p className={`${classes.label} text-muted-foreground`}>
+          <p className={`${classes.label} text-[#7f9da7]`}>
             Start your streak today! 🌱
           </p>
         </div>
