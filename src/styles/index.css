@@ -172,7 +172,8 @@ body {
 }
 
 .otter-bob-bubble,
-.otter-bob-otter {
+.otter-bob-otter,
+.island-bob {
   will-change: transform;
 }
 
@@ -182,6 +183,24 @@ body {
 
 .otter-bob-otter {
   animation: otter-bob-otter 4.8s ease-in-out infinite;
+}
+
+.island-bob {
+  animation: island-bob-a 6.4s ease-in-out infinite;
+}
+
+.island-bob--memories {
+  animation-duration: 7s;
+}
+
+.island-bob--inspiration {
+  animation-name: island-bob-b;
+  animation-duration: 6.2s;
+}
+
+.island-bob--harbor {
+  animation-name: island-bob-c;
+  animation-duration: 6.8s;
 }
 
 @keyframes otter-bob-bubble {
@@ -206,9 +225,43 @@ body {
   }
 }
 
+@keyframes island-bob-a {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(8px);
+  }
+}
+
+@keyframes island-bob-b {
+  0%,
+  100% {
+    transform: translateY(2px);
+  }
+
+  50% {
+    transform: translateY(10px);
+  }
+}
+
+@keyframes island-bob-c {
+  0%,
+  100% {
+    transform: translateY(1px);
+  }
+
+  50% {
+    transform: translateY(9px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .otter-bob-bubble,
-  .otter-bob-otter {
+  .otter-bob-otter,
+  .island-bob {
     animation: none !important;
   }
 }

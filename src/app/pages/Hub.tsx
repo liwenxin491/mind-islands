@@ -17,10 +17,14 @@ import { AIChat } from '../components/AIChat';
 import { Button } from '../components/ui/button';
 import { FloatingIsland } from '../components/FloatingIsland';
 import { TodoPanel } from '../components/TodoPanel';
+import { ChromaCutoutImage } from '../components/ChromaCutoutImage';
 import { getDateKey, getNowInAppTimeZoneISO } from '../lib/time';
 import type { Island, IslandType } from '../types';
 import backgroundImage from '../../assets/background-new.png';
 import bubbleFrame from '../../assets/bubble-filled.png';
+import memoriesIslandImage from '../../assets/memories.png';
+import inspirationIslandImage from '../../assets/inspiration.png';
+import harborIslandImage from '../../assets/harbor.png';
 
 type MobileView = 'home' | 'memories';
 type MobileOverlay = 'chat' | 'todo' | 'settings' | null;
@@ -233,6 +237,7 @@ export function Hub() {
       id: 'memories',
       title: t('Memories Island', '记忆岛'),
       size: 'large' as const,
+      imageSrc: memoriesIslandImage,
       className: 'col-span-2 mx-auto w-[78%]',
       onClick: () => setMobileView('memories'),
     },
@@ -240,13 +245,15 @@ export function Hub() {
       id: 'inspiration',
       title: t('Inspiration Island', '灵感岛'),
       size: 'small' as const,
+      imageSrc: inspirationIslandImage,
       className: 'justify-self-start w-[92%]',
       onClick: () => navigate('/island/curiosity'),
     },
     {
       id: 'harbor',
-      title: t('Harbor Island', '栖息地'),
+      title: t('Harbor', '栖息地'),
       size: 'small' as const,
+      imageSrc: harborIslandImage,
       className: 'justify-self-end w-[92%]',
       onClick: () => navigate('/island/compassion'),
     },
@@ -335,7 +342,7 @@ function MobileHomeOrMemories({
   setMobileView: (view: MobileView) => void;
   mobileOverlay: MobileOverlay;
   setMobileOverlay: (overlay: MobileOverlay) => void;
-  cards: Array<{ id: string; title: string; size: 'large' | 'small'; className: string; onClick: () => void }>;
+  cards: Array<{ id: string; title: string; size: 'large' | 'small'; imageSrc: string; className: string; onClick: () => void }>;
   memoryIslands: Island[];
   bubbleMessage: string;
   canCycle: boolean;
@@ -359,28 +366,35 @@ function MobileHomeOrMemories({
       <div className="relative flex-1">
         {mobileView === 'home' ? (
           <div className="flex h-full flex-col">
-            <div className="mt-4 grid grid-cols-2 gap-4 px-1">
+            <div className="-mt-2 grid grid-cols-2 gap-4 px-1">
               {cards.map((card) => (
                 <button
                   key={card.id}
                   type="button"
                   onClick={card.onClick}
-                  className={`${card.className} ${card.size === 'large' ? 'h-28' : 'h-20'} rounded-[28px] border border-white/12 bg-[rgba(218,231,236,0.42)] px-5 text-left text-slate-800 shadow-[0_16px_40px_rgba(7,35,43,0.18)] backdrop-blur-md transition hover:bg-[rgba(224,235,239,0.5)]`}
+                  className={`${card.className} island-bob island-bob--${card.id} relative flex ${card.size === 'large' ? 'min-h-[10rem]' : 'min-h-[8rem]'} items-end justify-center rounded-[28px] bg-transparent px-2 text-slate-800 transition hover:scale-[1.01]`}
                 >
-                  <span className={`block ${card.size === 'large' ? 'pt-8 text-2xl' : 'pt-5 text-lg'} font-semibold tracking-tight`}>
-                    {card.title}
-                  </span>
+                  <div className="relative flex w-full flex-col items-center">
+                    <ChromaCutoutImage
+                      src={card.imageSrc}
+                      alt={card.title}
+                      className={`pointer-events-none block h-auto w-full object-contain drop-shadow-[0_14px_22px_rgba(7,35,43,0.18)] ${card.size === 'large' ? 'max-w-[6.25rem]' : 'max-w-[8.75rem]'}`}
+                    />
+                    <span className={`${card.size === 'large' ? '-mt-1 px-4 text-base' : '-mt-2 px-3 text-sm'} rounded-full bg-[rgba(235,243,246,0.84)] py-1 font-medium text-slate-800 backdrop-blur-md`}>
+                      {card.title}
+                    </span>
+                  </div>
                 </button>
               ))}
             </div>
 
-            <div className="relative mt-4 flex flex-1 flex-col items-center justify-end pb-28">
+            <div className="relative mt-0 flex flex-1 flex-col items-center justify-end pb-[7.5rem]">
               <button
                 type="button"
                 onClick={onBubbleClick}
-                className={`otter-bob-bubble absolute left-1/2 top-[8.5%] w-[76%] max-w-sm text-center ${canCycle ? 'cursor-pointer' : ''}`}
+                className={`otter-bob-bubble absolute left-1/2 top-[1.5%] w-[76%] max-w-sm text-center ${canCycle ? 'cursor-pointer' : ''}`}
               >
-                <div className="relative" style={{ aspectRatio: '435 / 176' }}>
+                <div className="relative" style={{ aspectRatio: '510 / 176' }}>
                   <img
                     src={bubbleFrame}
                     alt=""
