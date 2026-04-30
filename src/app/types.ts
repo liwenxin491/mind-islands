@@ -55,10 +55,26 @@ export interface WorkDailyLog {
   todaysWin?: string;
 }
 
+export type GoalCheckInMode = 'fixed' | 'progress';
+export type GoalCadence = 'daily' | 'weekly' | 'custom';
+
+export interface GoalCheckInRecord {
+  id: string;
+  createdAt: string;
+}
+
 export interface WorkGoal {
   id: string;
   text: string; // "Land internship in UX design"
   targetDate?: string;
+  checkInMode: GoalCheckInMode;
+  cadence: GoalCadence;
+  cadenceInterval: number;
+  progressPercent: number;
+  progressCheckInThreshold: number;
+  checkIns: GoalCheckInRecord[];
+  targetValue?: number;
+  unitLabel?: string;
 }
 
 // Learning Island - Milestone Tracker
@@ -67,6 +83,14 @@ export interface LearningGoal {
   ultimateGoal: string; // "Master Python programming"
   targetDate?: string;
   weeklyMilestones: WeeklyMilestone[];
+  checkInMode: GoalCheckInMode;
+  cadence: GoalCadence;
+  cadenceInterval: number;
+  progressPercent: number;
+  progressCheckInThreshold: number;
+  checkIns: GoalCheckInRecord[];
+  targetValue?: number;
+  unitLabel?: string;
 }
 
 export interface WeeklyMilestone {

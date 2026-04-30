@@ -49,9 +49,15 @@ interface MindIslandsContextType {
   updateWorkDailyLog: (id: string, updates: Partial<WorkDailyLog>) => void;
   deleteWorkDailyLog: (id: string) => void;
   addWorkGoal: (goal: Omit<WorkGoal, 'id'>) => void;
+  updateWorkGoal: (id: string, updates: Partial<Omit<WorkGoal, 'id'>>) => void;
+  deleteWorkGoal: (id: string) => void;
+  addWorkGoalCheckIn: (id: string) => void;
 
   // Learning
   addLearningGoal: (goal: Omit<LearningGoal, 'id'>) => void;
+  updateLearningGoal: (id: string, updates: Partial<Omit<LearningGoal, 'id'>>) => void;
+  deleteLearningGoal: (id: string) => void;
+  addLearningGoalCheckIn: (id: string) => void;
   addLearningDailyLog: (log: Omit<LearningDailyLog, 'id'>) => void;
   updateLearningDailyLog: (id: string, updates: Partial<LearningDailyLog>) => void;
   deleteLearningDailyLog: (id: string) => void;
@@ -117,6 +123,38 @@ const polishLogText = (value?: string) => {
   const normalized = withPronoun.charAt(0).toUpperCase() + withPronoun.slice(1);
   if (/[.!?]$/.test(normalized)) return normalized;
   return `${normalized}.`;
+};
+const appendUniqueSentence = (existing: string | undefined, addition: string) => {
+  const base = (existing || '').trim();
+  const next = polishLogText(addition);
+  if (!next) return base;
+  if (!base) return next;
+  if (base.includes(next)) return base;
+  return `${base} ${next}`.trim();
+};
+const formatGoalTarget = (targetValue?: number, unitLabel?: string) => {
+  if (!targetValue) return '';
+  return `${targetValue} ${unitLabel?.trim() || 'units'}`;
+};
+const buildWorkGoalCheckInText = (goal: WorkGoal) => {
+  const pieces = [`Checked in on "${goal.text}".`];
+  const target = formatGoalTarget(goal.targetValue, goal.unitLabel);
+  if (target) pieces.push(`Target: ${target}.`);
+  pieces.push(`Overall progress is ${Math.round(goal.progressPercent)}%.`);
+  if (goal.checkInMode === 'progress') {
+    pieces.push(`This goal checks in every ${goal.progressCheckInThreshold}% progress.`);
+  }
+  return pieces.join(' ');
+};
+const buildLearningGoalCheckInText = (goal: LearningGoal) => {
+  const pieces = [`Checked in on "${goal.ultimateGoal}".`];
+  const target = formatGoalTarget(goal.targetValue, goal.unitLabel);
+  if (target) pieces.push(`Target: ${target}.`);
+  pieces.push(`Overall progress is ${Math.round(goal.progressPercent)}%.`);
+  if (goal.checkInMode === 'progress') {
+    pieces.push(`This goal checks in every ${goal.progressCheckInThreshold}% progress.`);
+  }
+  return pieces.join(' ');
 };
 const mergeText = (base?: string, incoming?: string) => {
   if (!base && !incoming) return '';
@@ -642,6 +680,47 @@ const LEGACY_STORAGE_KEY = 'mindIslandsProgress';
 const userStorageKey = (userId: string) => `mindIslandsProgress:${userId}`;
 const OFFLINE_MODE = import.meta.env.VITE_LOCAL_OFFLINE === 'true';
 
+const normalizeGoalCheckIns = (checkIns: any[] | undefined) =>
+  Array.isArray(checkIns)
+    ? checkIns
+        .map((checkIn) => ({
+          id: checkIn?.id || Math.random().toString(36).slice(2),
+          createdAt: normalizeDateTime(checkIn?.createdAt) || getNowInAppTimeZoneISO(),
+        }))
+        .filter((checkIn) => Boolean(checkIn.createdAt))
+    : [];
+
+const normalizeWorkGoalRecord = (goal: any): WorkGoal => ({
+  id: goal?.id || Math.random().toString(36).slice(2),
+  text: typeof goal?.text === 'string' ? goal.text : '',
+  targetDate: goal?.targetDate,
+  checkInMode: goal?.checkInMode === 'progress' ? 'progress' : 'fixed',
+  cadence:
+    goal?.cadence === 'weekly' || goal?.cadence === 'custom' ? goal.cadence : 'daily',
+  cadenceInterval: clamp(Number(goal?.cadenceInterval) || 1, 1, 365),
+  progressPercent: clamp(Number(goal?.progressPercent) || 0, 0, 100),
+  progressCheckInThreshold: clamp(Number(goal?.progressCheckInThreshold) || 25, 1, 100),
+  checkIns: normalizeGoalCheckIns(goal?.checkIns),
+  targetValue: Number.isFinite(Number(goal?.targetValue)) ? Math.max(0, Number(goal.targetValue)) : undefined,
+  unitLabel: typeof goal?.unitLabel === 'string' ? goal.unitLabel : undefined,
+});
+
+const normalizeLearningGoalRecord = (goal: any): LearningGoal => ({
+  id: goal?.id || Math.random().toString(36).slice(2),
+  ultimateGoal: typeof goal?.ultimateGoal === 'string' ? goal.ultimateGoal : '',
+  targetDate: goal?.targetDate,
+  weeklyMilestones: Array.isArray(goal?.weeklyMilestones) ? goal.weeklyMilestones : [],
+  checkInMode: goal?.checkInMode === 'progress' ? 'progress' : 'fixed',
+  cadence:
+    goal?.cadence === 'weekly' || goal?.cadence === 'custom' ? goal.cadence : 'daily',
+  cadenceInterval: clamp(Number(goal?.cadenceInterval) || 1, 1, 365),
+  progressPercent: clamp(Number(goal?.progressPercent) || 0, 0, 100),
+  progressCheckInThreshold: clamp(Number(goal?.progressCheckInThreshold) || 25, 1, 100),
+  checkIns: normalizeGoalCheckIns(goal?.checkIns),
+  targetValue: Number.isFinite(Number(goal?.targetValue)) ? Math.max(0, Number(goal.targetValue)) : undefined,
+  unitLabel: typeof goal?.unitLabel === 'string' ? goal.unitLabel : undefined,
+});
+
 const hydrateProgress = (input: any): UserProgress => {
   if (!input || typeof input !== 'object') return defaultProgress;
   const parsed = input;
@@ -667,8 +746,14 @@ const hydrateProgress = (input: any): UserProgress => {
     healthCheckIns: parsed.healthCheckIns || [],
     workItems: parsed.workItems || [],
     workDailyLogs: parsed.workDailyLogs || [],
-    workGoals: parsed.workGoals || [],
-    learningGoals: parsed.learningGoals || [],
+    workGoals: Array.isArray(parsed.workGoals)
+      ? parsed.workGoals.map(normalizeWorkGoalRecord).filter((goal: WorkGoal) => Boolean(goal.text.trim()))
+      : [],
+    learningGoals: Array.isArray(parsed.learningGoals)
+      ? parsed.learningGoals
+          .map(normalizeLearningGoalRecord)
+          .filter((goal: LearningGoal) => Boolean(goal.ultimateGoal.trim()))
+      : [],
     learningDailyLogs: parsed.learningDailyLogs || [],
     relationshipLogs: migratedRelationshipLogs,
     curiosityLogs: parsed.curiosityLogs || [],
@@ -1015,19 +1100,133 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
   };
 
   const addWorkGoal = (goal: Omit<WorkGoal, 'id'>) => {
-    const newGoal = { ...goal, id: generateId() };
+    const newGoal = normalizeWorkGoalRecord({ ...goal, id: generateId() });
     setProgress((prev) => ({
       ...prev,
       workGoals: [...prev.workGoals, newGoal],
     }));
   };
 
+  const updateWorkGoal = (id: string, updates: Partial<Omit<WorkGoal, 'id'>>) => {
+    setProgress((prev) => ({
+      ...prev,
+      workGoals: prev.workGoals.map((goal) =>
+        goal.id === id ? normalizeWorkGoalRecord({ ...goal, ...updates, id: goal.id }) : goal,
+      ),
+    }));
+  };
+
+  const deleteWorkGoal = (id: string) => {
+    setProgress((prev) => ({
+      ...prev,
+      workGoals: prev.workGoals.filter((goal) => goal.id !== id),
+    }));
+  };
+
+  const addWorkGoalCheckIn = (id: string) => {
+    const now = getNowInAppTimeZoneISO();
+    const today = getDateKey();
+
+    setProgress((prev) => {
+      const targetGoal = prev.workGoals.find((goal) => goal.id === id);
+      if (!targetGoal) return prev;
+      const nextGoals = prev.workGoals.map((goal) =>
+        goal.id === id
+          ? {
+              ...goal,
+              checkIns: [...goal.checkIns, { id: generateId(), createdAt: now }],
+            }
+          : goal,
+      );
+
+      const todayLog = prev.workDailyLogs.find((log) => log.date === today);
+      const nextProgressStep = appendUniqueSentence(
+        todayLog?.progressStep,
+        buildWorkGoalCheckInText(targetGoal),
+      );
+      return {
+        ...prev,
+        workGoals: nextGoals,
+        workDailyLogs: todayLog
+          ? prev.workDailyLogs.map((log) =>
+              log.id === todayLog.id ? { ...log, progressStep: nextProgressStep } : log,
+            )
+          : [
+              ...prev.workDailyLogs,
+              {
+                id: generateId(),
+                date: today,
+                progressStep: nextProgressStep,
+                stressLevel: 3,
+              },
+            ],
+      };
+    });
+  };
+
   const addLearningGoal = (goal: Omit<LearningGoal, 'id'>) => {
-    const newGoal = { ...goal, id: generateId() };
+    const newGoal = normalizeLearningGoalRecord({ ...goal, id: generateId() });
     setProgress((prev) => ({
       ...prev,
       learningGoals: [...prev.learningGoals, newGoal],
     }));
+  };
+
+  const updateLearningGoal = (id: string, updates: Partial<Omit<LearningGoal, 'id'>>) => {
+    setProgress((prev) => ({
+      ...prev,
+      learningGoals: prev.learningGoals.map((goal) =>
+        goal.id === id ? normalizeLearningGoalRecord({ ...goal, ...updates, id: goal.id }) : goal,
+      ),
+    }));
+  };
+
+  const deleteLearningGoal = (id: string) => {
+    setProgress((prev) => ({
+      ...prev,
+      learningGoals: prev.learningGoals.filter((goal) => goal.id !== id),
+    }));
+  };
+
+  const addLearningGoalCheckIn = (id: string) => {
+    const now = getNowInAppTimeZoneISO();
+    const today = getDateKey();
+
+    setProgress((prev) => {
+      const targetGoal = prev.learningGoals.find((goal) => goal.id === id);
+      if (!targetGoal) return prev;
+      const nextGoals = prev.learningGoals.map((goal) =>
+        goal.id === id
+          ? {
+              ...goal,
+              checkIns: [...goal.checkIns, { id: generateId(), createdAt: now }],
+            }
+          : goal,
+      );
+
+      const todayLog = prev.learningDailyLogs.find((log) => log.date === today);
+      const nextWhatILearned = appendUniqueSentence(
+        todayLog?.whatILearned,
+        buildLearningGoalCheckInText(targetGoal),
+      );
+      return {
+        ...prev,
+        learningGoals: nextGoals,
+        learningDailyLogs: todayLog
+          ? prev.learningDailyLogs.map((log) =>
+              log.id === todayLog.id ? { ...log, whatILearned: nextWhatILearned } : log,
+            )
+          : [
+              ...prev.learningDailyLogs,
+              {
+                id: generateId(),
+                date: today,
+                focusedStudyMinutes: 0,
+                whatILearned: nextWhatILearned,
+              },
+            ],
+      };
+    });
   };
 
   const addLearningDailyLog = (log: Omit<LearningDailyLog, 'id'>) => {
@@ -1632,7 +1831,13 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
         updateWorkDailyLog,
         deleteWorkDailyLog,
         addWorkGoal,
+        updateWorkGoal,
+        deleteWorkGoal,
+        addWorkGoalCheckIn,
         addLearningGoal,
+        updateLearningGoal,
+        deleteLearningGoal,
+        addLearningGoalCheckIn,
         addLearningDailyLog,
         updateLearningDailyLog,
         deleteLearningDailyLog,

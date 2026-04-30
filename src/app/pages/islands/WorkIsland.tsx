@@ -1,10 +1,11 @@
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, Plus, Target, TrendingUp, Heart, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Target, TrendingUp, Heart, Trash2, CheckCircle2 } from 'lucide-react';
 import { useMindIslands } from '../../context/MindIslandsContext';
 import { Button } from '../../components/ui/button';
 import { SceneShell } from '../../components/SceneShell';
+import { Progress } from '../../components/ui/progress';
 import type { WorkStage, WorkItem } from '../../types';
 import { getDateKey } from '../../lib/time';
 
@@ -18,10 +19,14 @@ export function WorkIsland() {
     updateWorkDailyLog,
     deleteWorkDailyLog,
     addWorkGoal,
+    updateWorkGoal,
+    deleteWorkGoal,
+    addWorkGoalCheckIn,
   } = useMindIslands();
   const [showNewItem, setShowNewItem] = useState(false);
   const [showDailyLog, setShowDailyLog] = useState(false);
   const [showGoalForm, setShowGoalForm] = useState(false);
+  const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
   const [newItemTitle, setNewItemTitle] = useState('');
   const [newItemStage, setNewItemStage] = useState<WorkStage>('planned');
 
@@ -83,6 +88,12 @@ export function WorkIsland() {
   const [goalForm, setGoalForm] = useState({
     text: '',
     targetDate: '',
+    checkInMode: 'fixed' as const,
+    cadence: 'daily' as const,
+    cadenceInterval: 1,
+    progressCheckInThreshold: 25,
+    targetValue: 10,
+    unitLabel: 'applications',
   });
 
   const handleSaveGoal = () => {
@@ -90,10 +101,44 @@ export function WorkIsland() {
       addWorkGoal({
         text: goalForm.text,
         targetDate: goalForm.targetDate || undefined,
+        checkInMode: goalForm.checkInMode,
+        cadence: goalForm.cadence,
+        cadenceInterval: goalForm.cadenceInterval,
+        progressPercent: 0,
+        progressCheckInThreshold: goalForm.progressCheckInThreshold,
+        checkIns: [],
+        targetValue: goalForm.targetValue,
+        unitLabel: goalForm.unitLabel.trim() || undefined,
       });
-      setGoalForm({ text: '', targetDate: '' });
+      setGoalForm({
+        text: '',
+        targetDate: '',
+        checkInMode: 'fixed',
+        cadence: 'daily',
+        cadenceInterval: 1,
+        progressCheckInThreshold: 25,
+        targetValue: 10,
+        unitLabel: 'applications',
+      });
       setShowGoalForm(false);
     }
+  };
+
+  const getCadenceLabel = (goal: (typeof progress.workGoals)[number]) => {
+    if (goal.cadence === 'daily') return goal.cadenceInterval === 1 ? 'Every day' : `Every ${goal.cadenceInterval} days`;
+    if (goal.cadence === 'weekly') return goal.cadenceInterval === 1 ? 'Every week' : `Every ${goal.cadenceInterval} weeks`;
+    return `Every ${goal.cadenceInterval} check-in cycle(s)`;
+  };
+
+  const getNextThreshold = (goal: (typeof progress.workGoals)[number]) => {
+    const nextStep = (goal.checkIns.length + 1) * goal.progressCheckInThreshold;
+    return Math.min(100, nextStep);
+  };
+
+  const handleDeleteGoal = (goalId: string) => {
+    if (!window.confirm('Delete this work goal?')) return;
+    deleteWorkGoal(goalId);
+    if (editingGoalId === goalId) setEditingGoalId(null);
   };
 
   return (
@@ -128,7 +173,7 @@ export function WorkIsland() {
           </div>
         </motion.div>
 
-        {/* Long-term Goals */}
+        {/* Goal System */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -137,7 +182,7 @@ export function WorkIsland() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-medium text-foreground flex items-center gap-2">
               <Target className="w-5 h-5" />
-              Long-term Goals
+              Goal System
             </h2>
             <Button
               onClick={() => setShowGoalForm(!showGoalForm)}
@@ -149,14 +194,130 @@ export function WorkIsland() {
           </div>
 
           {showGoalForm && (
-            <div className="mb-4 space-y-3 bg-black/20 rounded-xl p-4">
+            <div className="mb-4 space-y-4 bg-black/20 rounded-xl p-4">
               <input
                 type="text"
-                placeholder="e.g., Land internship in UX design"
+                placeholder="e.g., Apply to 10 companies every day"
                 value={goalForm.text}
                 onChange={(e) => setGoalForm({ ...goalForm, text: e.target.value })}
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-foreground placeholder:text-muted-foreground"
               />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                    Mode
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setGoalForm({ ...goalForm, checkInMode: 'fixed' })}
+                      className={`rounded-lg px-3 py-2 text-sm transition ${
+                        goalForm.checkInMode === 'fixed'
+                          ? 'bg-[#6b98a2] text-white'
+                          : 'bg-white/5 text-muted-foreground'
+                      }`}
+                    >
+                      Fixed check-in
+                    </button>
+                    <button
+                      onClick={() => setGoalForm({ ...goalForm, checkInMode: 'progress' })}
+                      className={`rounded-lg px-3 py-2 text-sm transition ${
+                        goalForm.checkInMode === 'progress'
+                          ? 'bg-[#6b98a2] text-white'
+                          : 'bg-white/5 text-muted-foreground'
+                      }`}
+                    >
+                      % threshold
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                    Target unit
+                  </label>
+                  <input
+                    type="text"
+                    value={goalForm.unitLabel}
+                    onChange={(e) => setGoalForm({ ...goalForm, unitLabel: e.target.value })}
+                    placeholder="applications"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                    Target amount
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={goalForm.targetValue}
+                    onChange={(e) =>
+                      setGoalForm({ ...goalForm, targetValue: Math.max(1, Number(e.target.value) || 1) })
+                    }
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-foreground"
+                  />
+                </div>
+                {goalForm.checkInMode === 'fixed' ? (
+                  <div className="grid grid-cols-[1fr_100px] gap-2">
+                    <div className="space-y-2">
+                      <label className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                        Cadence
+                      </label>
+                      <select
+                        value={goalForm.cadence}
+                        onChange={(e) =>
+                          setGoalForm({
+                            ...goalForm,
+                            cadence: e.target.value as 'daily' | 'weekly' | 'custom',
+                          })
+                        }
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-foreground"
+                      >
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="custom">Custom</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                        Every
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={goalForm.cadenceInterval}
+                        onChange={(e) =>
+                          setGoalForm({
+                            ...goalForm,
+                            cadenceInterval: Math.max(1, Number(e.target.value) || 1),
+                          })
+                        }
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-foreground"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                      Check in every %
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={goalForm.progressCheckInThreshold}
+                      onChange={(e) =>
+                        setGoalForm({
+                          ...goalForm,
+                          progressCheckInThreshold: Math.min(100, Math.max(1, Number(e.target.value) || 1)),
+                        })
+                      }
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-foreground"
+                    />
+                  </div>
+                )}
+              </div>
               <div className="flex gap-2">
                 <input
                   type="date"
@@ -174,23 +335,220 @@ export function WorkIsland() {
           <div className="space-y-2">
             {progress.workGoals.length === 0 ? (
               <p className="text-muted-foreground text-center py-4">
-                Set a long-term career goal to work towards
+                Set a work goal, choose how often it should count as a check-in, and drag its progress yourself.
               </p>
             ) : (
               progress.workGoals.map((goal) => (
                 <div
                   key={goal.id}
-                  className="bg-white/5 rounded-lg p-4 flex items-center justify-between"
+                  className="bg-white/5 rounded-2xl p-4 space-y-4"
                 >
-                  <div className="flex items-center gap-3">
-                    <Target className="w-5 h-5 text-blue-400" />
-                    <span className="text-foreground">{goal.text}</span>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <Target className="w-5 h-5 text-blue-400 mt-1" />
+                      <div>
+                        <div className="text-foreground font-medium">{goal.text}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {goal.checkInMode === 'fixed'
+                            ? `Fixed mode · ${getCadenceLabel(goal)}`
+                            : `Check in every ${goal.progressCheckInThreshold}% progress`}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right text-sm text-muted-foreground">
+                      <div>{goal.checkIns.length} check-ins</div>
+                      {goal.targetDate && <div>By {new Date(goal.targetDate).toLocaleDateString()}</div>}
+                    </div>
                   </div>
-                  {goal.targetDate && (
-                    <span className="text-sm text-muted-foreground">
-                      By {new Date(goal.targetDate).toLocaleDateString()}
-                    </span>
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      onClick={() => setEditingGoalId(editingGoalId === goal.id ? null : goal.id)}
+                      size="sm"
+                      variant="outline"
+                    >
+                      {editingGoalId === goal.id ? 'Done editing' : 'Edit goal'}
+                    </Button>
+                    <Button
+                      onClick={() => handleDeleteGoal(goal.id)}
+                      size="sm"
+                      variant="outline"
+                      className="border-red-400/40 text-red-300 hover:bg-red-500/20 hover:text-red-200"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete
+                    </Button>
+                  </div>
+
+                  {editingGoalId === goal.id && (
+                    <div className="grid grid-cols-1 gap-3 rounded-xl bg-black/15 p-4 md:grid-cols-2">
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                          Goal
+                        </label>
+                        <input
+                          type="text"
+                          value={goal.text}
+                          onChange={(e) => updateWorkGoal(goal.id, { text: e.target.value })}
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-foreground"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                          Mode
+                        </label>
+                        <select
+                          value={goal.checkInMode}
+                          onChange={(e) =>
+                            updateWorkGoal(goal.id, {
+                              checkInMode: e.target.value as 'fixed' | 'progress',
+                            })
+                          }
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-foreground"
+                        >
+                          <option value="fixed">Fixed check-in</option>
+                          <option value="progress">% threshold</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                          Target date
+                        </label>
+                        <input
+                          type="date"
+                          value={goal.targetDate || ''}
+                          onChange={(e) => updateWorkGoal(goal.id, { targetDate: e.target.value || undefined })}
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-foreground"
+                        />
+                      </div>
+                      {goal.checkInMode === 'fixed' ? (
+                        <>
+                          <div className="space-y-2">
+                            <label className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                              Cadence
+                            </label>
+                            <select
+                              value={goal.cadence}
+                              onChange={(e) =>
+                                updateWorkGoal(goal.id, {
+                                  cadence: e.target.value as 'daily' | 'weekly' | 'custom',
+                                })
+                              }
+                              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-foreground"
+                            >
+                              <option value="daily">Daily</option>
+                              <option value="weekly">Weekly</option>
+                              <option value="custom">Custom</option>
+                            </select>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                              Every
+                            </label>
+                            <input
+                              type="number"
+                              min={1}
+                              value={goal.cadenceInterval}
+                              onChange={(e) =>
+                                updateWorkGoal(goal.id, {
+                                  cadenceInterval: Math.max(1, Number(e.target.value) || 1),
+                                })
+                              }
+                              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-foreground"
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="space-y-2 md:col-span-2">
+                          <label className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                            Check in every %
+                          </label>
+                          <input
+                            type="number"
+                            min={1}
+                            max={100}
+                            value={goal.progressCheckInThreshold}
+                            onChange={(e) =>
+                              updateWorkGoal(goal.id, {
+                                progressCheckInThreshold: Math.min(
+                                  100,
+                                  Math.max(1, Number(e.target.value) || 1),
+                                ),
+                              })
+                            }
+                            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-foreground"
+                          />
+                        </div>
+                      )}
+                    </div>
                   )}
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <label className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                        Progress
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <Progress value={goal.progressPercent} className="h-3 bg-white/10" />
+                        <span className="w-12 text-right text-sm text-foreground">
+                          {Math.round(goal.progressPercent)}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={goal.progressPercent}
+                        onChange={(e) =>
+                          updateWorkGoal(goal.id, { progressPercent: Number(e.target.value) })
+                        }
+                        className="w-full accent-[#6b98a2]"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                        Target
+                      </label>
+                      <div className="grid grid-cols-[96px_1fr] gap-2">
+                        <input
+                          type="number"
+                          min={1}
+                          value={goal.targetValue || 1}
+                          onChange={(e) =>
+                            updateWorkGoal(goal.id, {
+                              targetValue: Math.max(1, Number(e.target.value) || 1),
+                            })
+                          }
+                          className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-foreground"
+                        />
+                        <input
+                          type="text"
+                          value={goal.unitLabel || ''}
+                          onChange={(e) => updateWorkGoal(goal.id, { unitLabel: e.target.value })}
+                          placeholder="applications"
+                          className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-foreground placeholder:text-muted-foreground"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3 text-sm">
+                    {goal.checkInMode === 'progress' ? (
+                      <div className="text-muted-foreground">
+                        Next check-in unlocks at {getNextThreshold(goal)}%
+                      </div>
+                    ) : (
+                      <div className="text-muted-foreground">Current rhythm: {getCadenceLabel(goal)}</div>
+                    )}
+                    <Button
+                      onClick={() => addWorkGoalCheckIn(goal.id)}
+                      size="sm"
+                      className="bg-[#6b98a2] hover:bg-[#5a8790] text-white"
+                    >
+                      <CheckCircle2 className="w-4 h-4 mr-2" />
+                      Check in once
+                    </Button>
+                  </div>
                 </div>
               ))
             )}
