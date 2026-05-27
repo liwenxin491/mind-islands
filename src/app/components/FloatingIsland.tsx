@@ -145,8 +145,8 @@ export function FloatingIsland({ type, color, glow = false }: FloatingIslandProp
       <svg viewBox="0 0 200 200" className="w-full h-full">
         <defs>
           <linearGradient id="grad-learning" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" style={{ stopColor: '#4c1d95', stopOpacity: 1 }} />
-            <stop offset="100%" style={{ stopColor: '#2e1065', stopOpacity: 1 }} />
+            <stop offset="0%" style={{ stopColor: '#4e8393', stopOpacity: 1 }} />
+            <stop offset="100%" style={{ stopColor: '#244e5a', stopOpacity: 1 }} />
           </linearGradient>
         </defs>
         
@@ -162,20 +162,20 @@ export function FloatingIsland({ type, color, glow = false }: FloatingIslandProp
         {/* Surface */}
         <path
           d="M 60 110 Q 50 112 52 115 L 148 115 Q 150 112 140 110 Z"
-          fill="#a855f7"
+          fill="#8bb3bc"
           opacity="0.6"
         />
         
         {/* Library building */}
         <g transform="translate(75, 70)">
           {/* Building base */}
-          <rect x="0" y="15" width="30" height="25" fill="#6b21a8" opacity="0.9"/>
+          <rect x="0" y="15" width="30" height="25" fill="#527c8a" opacity="0.9"/>
           {/* Columns */}
-          <rect x="2" y="15" width="3" height="25" fill="#a855f7" opacity="0.7"/>
-          <rect x="12" y="15" width="3" height="25" fill="#a855f7" opacity="0.7"/>
-          <rect x="22" y="15" width="3" height="25" fill="#a855f7" opacity="0.7"/>
+          <rect x="2" y="15" width="3" height="25" fill="#c4dce0" opacity="0.7"/>
+          <rect x="12" y="15" width="3" height="25" fill="#c4dce0" opacity="0.7"/>
+          <rect x="22" y="15" width="3" height="25" fill="#c4dce0" opacity="0.7"/>
           {/* Roof */}
-          <path d="M -2 15 L 15 8 L 32 15 Z" fill="#7c3aed"/>
+          <path d="M -2 15 L 15 8 L 32 15 Z" fill="#6b98a2"/>
         </g>
         
         {/* Stack of books */}

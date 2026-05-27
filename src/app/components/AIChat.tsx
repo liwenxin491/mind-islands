@@ -45,6 +45,11 @@ const summarizeDraft = (insight: AIInsightPayload, language: 'en' | 'zh') => {
   const lines: string[] = [];
   const entries = insight.entries || {};
 
+  if (insight.memory && hasText(insight.memory.content)) {
+    const tags = insight.memory.tags?.length ? ` · ${insight.memory.tags.join(', ')}` : '';
+    lines.push(`${s('Memory', '记忆')}: ${insight.memory.title || insight.memory.content}${tags}`);
+  }
+
   if (entries.body) {
     const parts: string[] = [];
     if (typeof entries.body.workoutCompleted === 'boolean') {
@@ -101,7 +106,17 @@ const summarizeDraft = (insight: AIInsightPayload, language: 'en' | 'zh') => {
   return lines.slice(0, 6);
 };
 
-export function AIChat({ variant = 'standalone' }: { variant?: 'standalone' | 'overlay' }) {
+export function AIChat({
+  variant = 'standalone',
+  initialInput = '',
+  initialMessage,
+  autoSendInitialMessage = false,
+}: {
+  variant?: 'standalone' | 'overlay';
+  initialInput?: string;
+  initialMessage?: string;
+  autoSendInitialMessage?: boolean;
+}) {
   const { progress, addChatMessage, applyAIInsights } = useMindIslands();
   const { language, t } = useLanguage();
   const isOverlay = variant === 'overlay';
@@ -113,11 +128,12 @@ export function AIChat({ variant = 'standalone' }: { variant?: 'standalone' | 'o
     curiosity: t('Curiosity', '好奇'),
     compassion: t('Self-Compassion', '自我关怀'),
   };
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState(initialInput);
   const [isTyping, setIsTyping] = useState(false);
   const [pendingFollowup, setPendingFollowup] = useState<PendingFollowup | null>(null);
   const [pendingDraft, setPendingDraft] = useState<PendingDraft | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const submittedInitialMessageRef = useRef(false);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -153,6 +169,9 @@ export function AIChat({ variant = 'standalone' }: { variant?: 'standalone' | 'o
         ),
       );
     }
+    if (applied.memoriesAdded > 0) {
+      parts.push(t('Saved to Memories', '已保存到记忆'));
+    }
 
     appendAssistantMessage(
       parts.length > 0
@@ -169,9 +188,9 @@ export function AIChat({ variant = 'standalone' }: { variant?: 'standalone' | 'o
     appendAssistantMessage(t('Draft discarded. Share a new update whenever you want.', '草稿已丢弃。你可以随时重新输入新的记录。'));
   };
 
-  const handleSend = async () => {
-    if (!input.trim() || isTyping) return;
-    const userInput = input.trim();
+  const handleSend = async (messageOverride?: string) => {
+    const userInput = (messageOverride ?? input).trim();
+    if (!userInput || isTyping) return;
 
     addChatMessage({
       role: 'user',
@@ -204,7 +223,9 @@ export function AIChat({ variant = 'standalone' }: { variant?: 'standalone' | 'o
 
       const result = (await response.json()) as AIInsightPayload;
       const todoCount = Array.isArray(result.todos) ? result.todos.length : 0;
-      const hasEntryDraft = Object.values(result.entries || {}).some((entry) => hasMeaningfulEntry(entry));
+      const hasEntryDraft =
+        Boolean(result.memory && hasMeaningfulEntry(result.memory)) ||
+        Object.values(result.entries || {}).some((entry) => hasMeaningfulEntry(entry));
 
       if (result.needsFollowup) {
         const followup =
@@ -279,6 +300,16 @@ export function AIChat({ variant = 'standalone' }: { variant?: 'standalone' | 'o
     }
   };
 
+  useEffect(() => {
+    if (!autoSendInitialMessage || !initialMessage?.trim() || submittedInitialMessageRef.current) {
+      return;
+    }
+    submittedInitialMessageRef.current = true;
+    void handleSend(initialMessage);
+    // The initial handoff should run only once when a composer message enters the conversation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSendInitialMessage, initialMessage]);
+
   const draftSummary = pendingDraft ? summarizeDraft(pendingDraft.insight, language) : [];
   const draftIslands = pendingDraft?.insight.detectedIslands || [];
 
@@ -331,7 +362,7 @@ export function AIChat({ variant = 'standalone' }: { variant?: 'standalone' | 'o
                 {t('Pending Draft', '待确认草稿')}
               </p>
               <p className={`mt-1 text-xs ${isOverlay ? 'text-slate-500' : 'text-muted-foreground'}`}>
-                {t('Target:', '目标分区：')} {draftIslands.length > 0 ? draftIslands.map((id) => islandNameMap[id]).join(' / ') : t('Not decided', '未确定')}
+                {t('Save to:', '保存到：')} {pendingDraft.insight.memory ? t('Memories', '记忆') : draftIslands.length > 0 ? draftIslands.map((id) => islandNameMap[id]).join(' / ') : t('Memories', '记忆')}
               </p>
               {draftSummary.length > 0 && (
                 <div className="mt-2 space-y-1">
@@ -458,6 +489,7 @@ export function AIChat({ variant = 'standalone' }: { variant?: 'standalone' | 'o
         )}
         <div className="flex gap-2">
           <Input
+            autoFocus={!autoSendInitialMessage}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
@@ -472,7 +504,7 @@ export function AIChat({ variant = 'standalone' }: { variant?: 'standalone' | 'o
             disabled={isTyping}
           />
           <Button
-            onClick={handleSend}
+            onClick={() => handleSend()}
             disabled={!input.trim() || isTyping}
             className={isOverlay ? 'bg-[#6b98a2] text-white hover:bg-[#5a8791]' : 'bg-primary text-primary-foreground hover:bg-primary/80'}
           >

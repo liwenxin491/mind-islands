@@ -1,10 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react';
 import {
-  CheckSquare,
-  Home,
-  MessageCircle,
+  Settings,
   Sparkles,
-  User,
   X,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -13,44 +10,228 @@ import { useMindIslands } from '../context/MindIslandsContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { IllustratedCharacter } from '../components/IllustratedCharacter';
-import { AIChat } from '../components/AIChat';
+import { PrimaryNav } from '../components/PrimaryNav';
+import { useQuickLog } from '../components/QuickLogCapture';
 import { Button } from '../components/ui/button';
-import { FloatingIsland } from '../components/FloatingIsland';
-import { TodoPanel } from '../components/TodoPanel';
-import { ChromaCutoutImage } from '../components/ChromaCutoutImage';
 import { getDateKey, getNowInAppTimeZoneISO } from '../lib/time';
-import type { Island, IslandType } from '../types';
-import backgroundImage from '../../assets/background-new.png';
+import type { QuickPromptCategory, QuickPromptCheckIn, QuickPromptTrigger, UserProgress } from '../types';
+import backgroundImage from '../../assets/background-new.webp';
 import bubbleFrame from '../../assets/bubble-filled.png';
-import memoriesIslandImage from '../../assets/memories.png';
-import inspirationIslandImage from '../../assets/inspiration.png';
-import harborIslandImage from '../../assets/harbor.png';
 
-type MobileView = 'home' | 'memories';
-type MobileOverlay = 'chat' | 'todo' | 'settings' | null;
+type MobileOverlay = 'settings' | null;
 
-const MEMORY_ISLAND_IDS: IslandType[] = ['body', 'work', 'learning', 'relationships'];
+interface QuickPromptOption {
+  id: string;
+  en: string;
+  zh: string;
+  responseEn: string;
+  responseZh: string;
+  offerHarbor?: boolean;
+}
+
+interface QuickPromptDefinition {
+  id: string;
+  category: QuickPromptCategory;
+  trigger: QuickPromptTrigger;
+  questionEn: string;
+  questionZh: string;
+  options: QuickPromptOption[];
+}
+
+function getQuickPrompt(progress: UserProgress): QuickPromptDefinition {
+  const nowISO = getNowInAppTimeZoneISO();
+  const hour = Number(nowISO.slice(11, 13));
+  const recentLowEnergyCount = progress.healthCheckIns
+    .slice(-5)
+    .filter((entry) => entry.energyLevel <= 2).length;
+  const recentLowMoodCount = progress.compassionJournals
+    .slice(-5)
+    .filter((entry) => typeof entry.mood === 'number' && entry.mood <= 2).length;
+  const recentStrainedAnswers = progress.quickPromptCheckIns
+    .slice(-5)
+    .filter((entry) =>
+      ['overwhelmed', 'hard-on-myself', 'barely-slept', 'still-carrying', 'heavy'].includes(entry.answerId),
+    ).length;
+
+  if (recentLowEnergyCount + recentLowMoodCount + recentStrainedAnswers >= 2) {
+    return {
+      id: 'care-needed',
+      category: 'emotion',
+      trigger: 'recent-pattern',
+      questionEn: 'What needs a little care right now?',
+      questionZh: '此刻的我，最需要照顾哪一部分？',
+      options: [
+        {
+          id: 'overwhelmed',
+          en: 'Overwhelmed',
+          zh: '有点撑不住',
+          responseEn: 'I do not have to carry all of this alone.',
+          responseZh: '我不需要独自扛下所有事情。',
+          offerHarbor: true,
+        },
+        {
+          id: 'hard-on-myself',
+          en: 'Hard on myself',
+          zh: '在责怪自己',
+          responseEn: 'I can meet myself with less blame today.',
+          responseZh: '今天，我可以少一点责备自己。',
+          offerHarbor: true,
+        },
+        {
+          id: 'lonely',
+          en: 'Disconnected',
+          zh: '有些孤单',
+          responseEn: 'It makes sense to want some closeness.',
+          responseZh: '我渴望一点连接，是可以理解的。',
+          offerHarbor: true,
+        },
+        {
+          id: 'not-sure',
+          en: 'Not sure yet',
+          zh: '还说不清',
+          responseEn: 'I can find the words slowly.',
+          responseZh: '我可以慢慢找到表达它的语言。',
+        },
+      ],
+    };
+  }
+
+  if (hour < 11) {
+    return {
+      id: 'morning-sleep',
+      category: 'sleep',
+      trigger: 'morning',
+      questionEn: 'How did I sleep last night?',
+      questionZh: '昨晚我睡得怎么样？',
+      options: [
+        {
+          id: 'rested',
+          en: 'Rested',
+          zh: '睡得不错',
+          responseEn: 'I can begin today with this steadiness.',
+          responseZh: '我可以带着这份安稳开始今天。',
+        },
+        {
+          id: 'okay',
+          en: 'Okay',
+          zh: '还可以',
+          responseEn: 'An ordinary start is enough.',
+          responseZh: '一个普通的开始也已经足够。',
+        },
+        {
+          id: 'still-tired',
+          en: 'Still tired',
+          zh: '还有点累',
+          responseEn: 'I can be gentle with my energy today.',
+          responseZh: '今天，我可以温柔地对待自己的精力。',
+        },
+        {
+          id: 'barely-slept',
+          en: 'Barely slept',
+          zh: '几乎没睡好',
+          responseEn: 'A difficult night deserves extra care today.',
+          responseZh: '度过难熬的一夜后，今天值得更多照顾。',
+          offerHarbor: true,
+        },
+      ],
+    };
+  }
+
+  if (hour >= 18) {
+    return {
+      id: 'evening-carry',
+      category: 'reflection',
+      trigger: 'evening',
+      questionEn: 'How am I leaving today?',
+      questionZh: '今天结束时，我感觉怎么样？',
+      options: [
+        {
+          id: 'settled',
+          en: 'Settled',
+          zh: '平静下来',
+          responseEn: 'I gave today a place to land.',
+          responseZh: '我让今天稳稳落了下来。',
+        },
+        {
+          id: 'proud',
+          en: 'Proud',
+          zh: '有些自豪',
+          responseEn: 'I can hold on to what went well.',
+          responseZh: '我可以记住今天做得好的部分。',
+        },
+        {
+          id: 'tired',
+          en: 'Tired',
+          zh: '有点疲惫',
+          responseEn: 'Rest can be my next kind step.',
+          responseZh: '休息可以是我接下来温柔的一步。',
+        },
+        {
+          id: 'still-carrying',
+          en: 'Still carrying something',
+          zh: '心里还有事',
+          responseEn: 'I can give this feeling a little room.',
+          responseZh: '我可以给这份感受留一点空间。',
+          offerHarbor: true,
+        },
+      ],
+    };
+  }
+
+  return {
+    id: 'daytime-arrival',
+    category: 'energy',
+    trigger: 'afternoon',
+    questionEn: 'How am I arriving right now?',
+    questionZh: '此刻的我，是怎样来到这里的？',
+    options: [
+      {
+        id: 'steady',
+        en: 'Steady',
+        zh: '还算稳定',
+        responseEn: 'I can keep moving at my own pace.',
+        responseZh: '我可以按自己的节奏继续前进。',
+      },
+      {
+        id: 'energized',
+        en: 'Ready',
+        zh: '准备好了',
+        responseEn: 'I have energy for one meaningful step.',
+        responseZh: '我有精力去做一个有意义的小步骤。',
+      },
+      {
+        id: 'tired',
+        en: 'Tired',
+        zh: '有点累',
+        responseEn: 'Small is still worthwhile today.',
+        responseZh: '今天做小一点，也仍然值得。',
+      },
+      {
+        id: 'heavy',
+        en: 'Heavy',
+        zh: '心里沉沉的',
+        responseEn: 'I deserve support, not pressure.',
+        responseZh: '我值得得到支持，而不是更多压力。',
+        offerHarbor: true,
+      },
+    ],
+  };
+}
 
 export function Hub() {
   const navigate = useNavigate();
+  const { openComposer } = useQuickLog();
   const { language, setLanguage, t } = useLanguage();
-  const { progress, cleanupCompletedTodos } = useMindIslands();
+  const {
+    progress,
+    cleanupCompletedTodos,
+    addQuickPromptCheckIn,
+    updateQuickPromptCheckIn,
+  } = useMindIslands();
   const { logout } = useAuth();
 
-  const isPreviewMode = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-    return new URLSearchParams(window.location.search).get('preview') === '1';
-  }, []);
-
   const [bubbleIndex, setBubbleIndex] = useState(0);
-  const [mobileView, setMobileView] = useState<MobileView>('home');
   const [mobileOverlay, setMobileOverlay] = useState<MobileOverlay>(null);
-
-  useEffect(() => {
-    if (!progress.onboardingComplete && !isPreviewMode) {
-      navigate('/onboarding');
-    }
-  }, [progress.onboardingComplete, isPreviewMode, navigate]);
 
   const avatarMessages = useMemo(() => {
     const s = (en: string, zh: string) => (language === 'zh' ? zh : en);
@@ -71,8 +252,8 @@ export function Hub() {
     if (!settings.avatarRemindersEnabled) {
       return [
         s(
-          'I will stay quiet for now. You can re-enable reminders in Health Island anytime.',
-          '我先安静待着。你可以随时在健康岛重新开启提醒。',
+          'I will stay quiet for now. You can re-enable reminders in Actions anytime.',
+          '我先安静待着。你可以随时在行动的节奏设置中重新开启提醒。',
         ),
       ];
     }
@@ -232,36 +413,57 @@ export function Hub() {
     setBubbleIndex((prev) => (prev + 1) % avatarMessages.length);
   };
 
-  const homeDestinationCards = [
-    {
-      id: 'memories',
-      title: t('Memories Island', '记忆岛'),
-      size: 'large' as const,
-      imageSrc: memoriesIslandImage,
-      className: 'col-span-2 mx-auto w-[78%]',
-      onClick: () => setMobileView('memories'),
-    },
-    {
-      id: 'inspiration',
-      title: t('Inspiration Island', '灵感岛'),
-      size: 'small' as const,
-      imageSrc: inspirationIslandImage,
-      className: 'justify-self-start w-[92%]',
-      onClick: () => navigate('/island/curiosity'),
-    },
-    {
-      id: 'harbor',
-      title: t('Harbor', '栖息地'),
-      size: 'small' as const,
-      imageSrc: harborIslandImage,
-      className: 'justify-self-end w-[92%]',
-      onClick: () => navigate('/island/compassion'),
-    },
-  ];
+  const quickPrompt = useMemo(
+    () => getQuickPrompt(progress),
+    [progress.healthCheckIns, progress.compassionJournals, progress.quickPromptCheckIns],
+  );
+  const latestQuickCheckIn = useMemo(
+    () =>
+      progress.quickPromptCheckIns
+        .slice()
+        .reverse()
+        .find(
+          (checkIn) =>
+            checkIn.promptId === quickPrompt.id &&
+            checkIn.createdAt.slice(0, 10) === getDateKey(),
+        ),
+    [progress.quickPromptCheckIns, quickPrompt.id],
+  );
+  const selectedQuickOption = quickPrompt.options.find(
+    (option) => option.id === latestQuickCheckIn?.answerId,
+  );
 
-  const memoryIslands = MEMORY_ISLAND_IDS
-    .map((id) => progress.islands.find((island) => island.id === id))
-    .filter(Boolean) as Island[];
+  const openQuickLog = (
+    source: 'global' | 'otter' | 'quick-check-in' = 'global',
+    returnFocus?: HTMLElement,
+  ) => {
+    openComposer(source, returnFocus);
+  };
+
+  const answerQuickPrompt = (option: QuickPromptOption) => {
+    addQuickPromptCheckIn({
+      promptId: quickPrompt.id,
+      promptText: t(quickPrompt.questionEn, quickPrompt.questionZh),
+      category: quickPrompt.category,
+      trigger: quickPrompt.trigger,
+      answerId: option.id,
+      answer: t(option.en, option.zh),
+    });
+  };
+
+  const sayMoreFromPrompt = (returnFocus?: HTMLElement) => {
+    if (latestQuickCheckIn) {
+      updateQuickPromptCheckIn(latestQuickCheckIn.id, { continuedToQuickLog: true });
+    }
+    openQuickLog('quick-check-in', returnFocus);
+  };
+
+  const goToHarborFromPrompt = () => {
+    if (latestQuickCheckIn) {
+      updateQuickPromptCheckIn(latestQuickCheckIn.id, { continuedToHarbor: true });
+    }
+    navigate('/island/compassion');
+  };
 
   const activeTodos = progress.todos.filter((todo) => !todo.completed);
 
@@ -293,18 +495,19 @@ export function Hub() {
           <div className="absolute inset-0 bg-gradient-to-b from-[#0a2e38]/10 via-transparent to-[#0a2e38]/18" />
 
           <MobileHomeOrMemories
-            mobileView={mobileView}
-            setMobileView={setMobileView}
             mobileOverlay={mobileOverlay}
             setMobileOverlay={setMobileOverlay}
-            cards={homeDestinationCards}
-            memoryIslands={memoryIslands}
             bubbleMessage={avatarMessages[bubbleIndex]}
             canCycle={avatarMessages.length > 1}
             onBubbleClick={cycleBubble}
-            onOtterClick={() => setMobileOverlay('chat')}
+            onOtterClick={(returnFocus) => openQuickLog('otter', returnFocus)}
+            quickPrompt={quickPrompt}
+            quickCheckIn={latestQuickCheckIn}
+            selectedQuickOption={selectedQuickOption}
+            onQuickPromptAnswer={answerQuickPrompt}
+            onSayMore={sayMoreFromPrompt}
+            onGoToHarbor={goToHarborFromPrompt}
             t={t}
-            progressName={progress.character.name}
             activeTodosCount={activeTodos.length}
             cleanupCompletedTodos={cleanupCompletedTodos}
             logout={logout}
@@ -319,18 +522,19 @@ export function Hub() {
 }
 
 function MobileHomeOrMemories({
-  mobileView,
-  setMobileView,
   mobileOverlay,
   setMobileOverlay,
-  cards,
-  memoryIslands,
   bubbleMessage,
   canCycle,
   onBubbleClick,
   onOtterClick,
+  quickPrompt,
+  quickCheckIn,
+  selectedQuickOption,
+  onQuickPromptAnswer,
+  onSayMore,
+  onGoToHarbor,
   t,
-  progressName,
   activeTodosCount,
   cleanupCompletedTodos,
   logout,
@@ -338,18 +542,19 @@ function MobileHomeOrMemories({
   setLanguage,
   navigate,
 }: {
-  mobileView: MobileView;
-  setMobileView: (view: MobileView) => void;
   mobileOverlay: MobileOverlay;
   setMobileOverlay: (overlay: MobileOverlay) => void;
-  cards: Array<{ id: string; title: string; size: 'large' | 'small'; imageSrc: string; className: string; onClick: () => void }>;
-  memoryIslands: Island[];
   bubbleMessage: string;
   canCycle: boolean;
   onBubbleClick: () => void;
-  onOtterClick: () => void;
+  onOtterClick: (returnFocus: HTMLElement) => void;
+  quickPrompt: QuickPromptDefinition;
+  quickCheckIn?: QuickPromptCheckIn;
+  selectedQuickOption?: QuickPromptOption;
+  onQuickPromptAnswer: (option: QuickPromptOption) => void;
+  onSayMore: (returnFocus?: HTMLElement) => void;
+  onGoToHarbor: () => void;
   t: (en: string, zh: string) => string;
-  progressName: string;
   activeTodosCount: number;
   cleanupCompletedTodos: (olderThanDays: number) => number;
   logout: () => void;
@@ -357,42 +562,38 @@ function MobileHomeOrMemories({
   setLanguage: (language: 'en' | 'zh') => void;
   navigate: ReturnType<typeof useNavigate>;
 }) {
-  const memoriesCount = memoryIslands.reduce((acc, island) => acc + island.streak, 0);
-
   return (
     <div className="relative flex h-full flex-col overflow-hidden px-4 pb-5 pt-6">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/10 to-transparent" />
 
       <div className="relative flex-1">
-        {mobileView === 'home' ? (
-          <div className="flex h-full flex-col">
-            <div className="-mt-2 grid grid-cols-2 gap-4 px-1">
-              {cards.map((card) => (
-                <button
-                  key={card.id}
-                  type="button"
-                  onClick={card.onClick}
-                  className={`${card.className} island-bob island-bob--${card.id} relative flex ${card.size === 'large' ? 'min-h-[10rem]' : 'min-h-[8rem]'} items-end justify-center rounded-[28px] bg-transparent px-2 text-slate-800 transition hover:scale-[1.01]`}
-                >
-                  <div className="relative flex w-full flex-col items-center">
-                    <ChromaCutoutImage
-                      src={card.imageSrc}
-                      alt={card.title}
-                      className={`pointer-events-none block h-auto w-full object-contain drop-shadow-[0_14px_22px_rgba(7,35,43,0.18)] ${card.size === 'large' ? 'max-w-[6.25rem]' : 'max-w-[8.75rem]'}`}
-                    />
-                    <span className={`${card.size === 'large' ? '-mt-1 px-4 text-base' : '-mt-2 px-3 text-sm'} rounded-full bg-[rgba(235,243,246,0.84)] py-1 font-medium text-slate-800 backdrop-blur-md`}>
-                      {card.title}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
+        <button
+            type="button"
+            onClick={() => navigate('/island/curiosity')}
+            aria-label={t('Open Inspiration Island', '打开灵感岛')}
+            className="absolute -top-2 left-0 z-20 flex h-10 cursor-pointer items-center gap-1.5 rounded-full border border-white/45 bg-[rgba(250,253,252,0.9)] px-3.5 text-[12px] font-semibold text-[#476f79] shadow-[0_8px_22px_rgba(11,43,53,0.14)] backdrop-blur-lg transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>{t('Inspiration', '灵感')}</span>
+          </button>
+        <button
+          type="button"
+          aria-label={t('Open settings', '打开设置')}
+          onClick={() => setMobileOverlay('settings')}
+          className={`absolute -top-2 right-0 z-20 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-white/30 bg-white/78 text-[#557a84] shadow-[0_8px_22px_rgba(16,48,57,0.14)] backdrop-blur-lg transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${
+            mobileOverlay === 'settings' ? 'bg-white text-[#456c75]' : ''
+          }`}
+        >
+          <Settings className="h-5 w-5" />
+        </button>
 
-            <div className="relative mt-0 flex flex-1 flex-col items-center justify-end pb-[7.5rem]">
+        <div className="flex h-full flex-col items-center pb-[7.1rem] pt-9">
+            <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start">
               <button
                 type="button"
                 onClick={onBubbleClick}
-                className={`otter-bob-bubble absolute left-1/2 top-[1.5%] w-[76%] max-w-sm text-center ${canCycle ? 'cursor-pointer' : ''}`}
+                aria-label={canCycle ? t('Read another reflection', '切换一句自我支持') : undefined}
+                className={`home-companion-float relative mt-1 w-[86%] max-w-sm text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${canCycle ? 'cursor-pointer' : ''}`}
               >
                 <div className="relative" style={{ aspectRatio: '510 / 176' }}>
                   <img
@@ -403,9 +604,7 @@ function MobileHomeOrMemories({
                     draggable={false}
                   />
                   <div className="absolute inset-[14%_11%_24%_11%] flex items-center justify-center">
-                    <p
-                      className="text-[14px] leading-6 text-slate-900"
-                    >
+                    <p className="text-[13px] font-medium leading-5 text-slate-900">
                       {bubbleMessage}
                     </p>
                   </div>
@@ -414,132 +613,35 @@ function MobileHomeOrMemories({
 
               <button
                 type="button"
-                onClick={onOtterClick}
-                className="otter-bob-otter relative z-10 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                onClick={(event) => onOtterClick(event.currentTarget)}
+                aria-label={t('Talk to my otter', '和我的海獭聊聊')}
+                className="home-companion-float relative z-10 -mt-3 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
               >
-                <IllustratedCharacter type="otter" mood="neutral" size="xl" />
+                <span className="home-companion-character block">
+                  <IllustratedCharacter type="otter" mood="neutral" size="xl" />
+                </span>
               </button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex h-full flex-col">
-            <div className="mt-3 px-2 text-center">
-              <p className="text-[11px] uppercase tracking-[0.24em] text-slate-100/70">{t('Memories Layer', '记忆层')}</p>
-              <h2 className="mt-2 text-2xl font-semibold text-slate-50">{t('Memories Island', '记忆岛')}</h2>
-              <p className="mt-2 text-sm text-slate-100/80">
-                {t('Choose one memory island below.', '选择一个记忆子岛继续查看。')}
-              </p>
-              {memoriesCount > 0 && (
-                <p className="mt-2 text-xs text-slate-100/65">
-                  {t(`${memoriesCount} active streak points across memory islands`, `当前累计 ${memoriesCount} 个记忆连胜点`) }
-                </p>
-              )}
-            </div>
 
-            <div className="mt-6 grid flex-1 grid-cols-2 gap-x-3 gap-y-12 px-2 pb-28 pt-3">
-              {memoryIslands.map((island) => {
-                const typeMap: Record<IslandType, 'health' | 'work' | 'learning' | 'relationships' | 'curiosity' | 'compassion'> = {
-                  body: 'health',
-                  work: 'work',
-                  learning: 'learning',
-                  relationships: 'relationships',
-                  curiosity: 'curiosity',
-                  compassion: 'compassion',
-                };
-                const routeMap: Record<IslandType, string> = {
-                  body: '/island/body',
-                  work: '/island/work',
-                  learning: '/island/learning',
-                  relationships: '/island/relationships',
-                  curiosity: '/island/curiosity',
-                  compassion: '/island/compassion',
-                };
-                return (
-                  <button
-                    key={island.id}
-                    type="button"
-                    onClick={() => navigate(routeMap[island.id])}
-                    className="flex flex-col items-center justify-start rounded-[30px] bg-transparent px-2 py-2 text-center transition hover:bg-white/5"
-                  >
-                    <div className="relative h-40 w-full">
-                      <FloatingIsland type={typeMap[island.id]} color={island.color} glow={island.completedToday} />
-                    </div>
-                    <span className="-mt-1 rounded-full bg-[rgba(235,243,246,0.8)] px-3 py-1 text-sm font-medium text-slate-800 backdrop-blur-md">
-                      {island.id === 'body' ? t('Health', '健康') : island.id === 'relationships' ? t('Relationship', '关系') : island.name}
-                    </span>
-                  </button>
-                );
-              })}
+              <QuickPromptCard
+                prompt={quickPrompt}
+                checkIn={quickCheckIn}
+                selectedOption={selectedQuickOption}
+                onAnswer={onQuickPromptAnswer}
+                onSayMore={onSayMore}
+                onGoToHarbor={onGoToHarbor}
+                t={t}
+              />
             </div>
           </div>
-        )}
       </div>
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-slate-900/22 via-slate-900/8 to-transparent" />
 
-      <div className="absolute inset-x-4 bottom-5 z-20">
-        <div className="relative rounded-[32px] border border-white/25 bg-white/90 px-3 pb-3 pt-3 shadow-[0_20px_60px_rgba(6,33,43,0.26)] backdrop-blur-xl">
-          <div className="grid grid-cols-5 items-end gap-1 text-center text-slate-600">
-            <NavButton
-              icon={<Home className="h-6 w-6" />}
-              label={t('Home', '首页')}
-              active={mobileView === 'home' && mobileOverlay === null}
-              onClick={() => {
-                setMobileOverlay(null);
-                setMobileView('home');
-              }}
-            />
-            <NavButton
-              icon={<Sparkles className="h-6 w-6" />}
-              label={t('Memories', '记忆')}
-              active={mobileView === 'memories' && mobileOverlay === null}
-              onClick={() => {
-                setMobileOverlay(null);
-                setMobileView('memories');
-              }}
-            />
-            <div className="relative flex justify-center">
-              <button
-                type="button"
-                onClick={() => setMobileOverlay('chat')}
-                className="-mt-7 flex h-16 w-16 appearance-none flex-col items-center justify-center rounded-full border-0 bg-[#6b98a2] text-white outline-none ring-0 shadow-[0_10px_24px_rgba(22,68,79,0.18)] focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
-              >
-                <MessageCircle className="h-6 w-6" />
-                <span className="mt-0.5 text-[10px] font-semibold leading-none">{t('Quick Log', '速记')}</span>
-              </button>
-            </div>
-            <NavButton
-              icon={<CheckSquare className="h-6 w-6" />}
-              label={t('To-do', '待办')}
-              active={mobileOverlay === 'todo'}
-              badge={activeTodosCount > 0 ? String(activeTodosCount) : undefined}
-              onClick={() => setMobileOverlay('todo')}
-            />
-            <NavButton
-              icon={<User className="h-6 w-6" />}
-              label={t('Settings', '设置')}
-              active={mobileOverlay === 'settings'}
-              onClick={() => setMobileOverlay('settings')}
-            />
-          </div>
-        </div>
-      </div>
+      <PrimaryNav active="home" actionsBadge={activeTodosCount} />
 
       <AnimatePresence>
-        {mobileOverlay === 'chat' && (
-          <OverlayShell title={t('Quick Log', '速记')} onClose={() => setMobileOverlay(null)}>
-            <AIChat variant="overlay" />
-          </OverlayShell>
-        )}
-
-        {mobileOverlay === 'todo' && (
-          <OverlayShell title={t('To-do', '待办')} onClose={() => setMobileOverlay(null)}>
-            <TodoPanel variant="overlay" />
-          </OverlayShell>
-        )}
-
         {mobileOverlay === 'settings' && (
-          <OverlayShell title={t('Settings', '设置')} onClose={() => setMobileOverlay(null)}>
+          <OverlayShell title={t('Settings', '设置')} onClose={() => setMobileOverlay(null)} className="z-50">
             <div className="space-y-4 rounded-[28px] border border-white/18 bg-[rgba(240,246,248,0.8)] p-5 text-slate-700">
               <section className="rounded-2xl bg-[rgba(252,253,254,0.72)] p-4">
                 <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">{t('Language', '语言')}</p>
@@ -562,16 +664,10 @@ function MobileHomeOrMemories({
               </section>
 
               <section className="rounded-2xl bg-[rgba(252,253,254,0.72)] p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">{t('Navigation', '导航')}</p>
-                <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                  <Button variant="outline" className="justify-start border-white/30 bg-white/70 text-slate-700" onClick={() => navigate('/insights')}>
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">{t('Review', '回顾')}</p>
+                <div className="mt-3 text-sm">
+                  <Button variant="outline" className="w-full justify-start border-white/30 bg-white/70 text-slate-700" onClick={() => navigate('/memories?view=insights')}>
                     {t('Insights', '洞察')}
-                  </Button>
-                  <Button variant="outline" className="justify-start border-white/30 bg-white/70 text-slate-700" onClick={() => navigate('/island/curiosity')}>
-                    {t('Inspiration', '灵感')}
-                  </Button>
-                  <Button variant="outline" className="justify-start border-white/30 bg-white/70 text-slate-700" onClick={() => navigate('/island/compassion')}>
-                    {t('Harbor', '栖息地')}
                   </Button>
                 </div>
               </section>
@@ -610,31 +706,99 @@ function MobileHomeOrMemories({
   );
 }
 
-function NavButton({
-  icon,
-  label,
-  active,
-  badge,
-  onClick,
+function QuickPromptCard({
+  prompt,
+  checkIn,
+  selectedOption,
+  onAnswer,
+  onSayMore,
+  onGoToHarbor,
+  t,
 }: {
-  icon: React.ReactNode;
-  label: string;
-  active?: boolean;
-  badge?: string;
-  onClick: () => void;
+  prompt: QuickPromptDefinition;
+  checkIn?: QuickPromptCheckIn;
+  selectedOption?: QuickPromptOption;
+  onAnswer: (option: QuickPromptOption) => void;
+  onSayMore: (returnFocus?: HTMLElement) => void;
+  onGoToHarbor: () => void;
+  t: (en: string, zh: string) => string;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`relative flex flex-col items-center gap-1 rounded-2xl px-2 py-2 text-xs font-medium transition ${
-        active ? 'bg-[#e4ecec] text-[#5d8690]' : 'text-slate-600'
-      }`}
+    <section
+      aria-label={t('Optional quick check-in', '可选的快速记录')}
+      className="home-quick-card relative z-10 mt-1 w-[94%] rounded-[26px] border border-white/40 bg-[rgba(242,247,247,0.93)] px-4 py-3.5 text-slate-800 shadow-[0_16px_38px_rgba(7,34,42,0.18)] backdrop-blur-lg"
     >
-      {badge && <span className="absolute -right-1 top-1 rounded-full bg-[#6b98a2] px-1.5 text-[10px] text-white">{badge}</span>}
-      {icon}
-      <span>{label}</span>
-    </button>
+      {!checkIn ? (
+        <>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#587d86]">
+                {t('Optional check-in', '可选记录')}
+              </p>
+              <h2 className="mt-1 text-[15px] font-semibold leading-5 text-slate-800">
+                {t(prompt.questionEn, prompt.questionZh)}
+              </h2>
+            </div>
+            <button
+              type="button"
+              onClick={(event) => onSayMore(event.currentTarget)}
+              className="shrink-0 cursor-pointer rounded-full px-2 py-1 text-[11px] font-medium text-[#507580] transition-colors hover:bg-[#e0eaeb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b98a2]"
+            >
+              {t('Say more', '多说一点')}
+            </button>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {prompt.options.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => onAnswer(option)}
+                className="cursor-pointer rounded-full border border-[#b8cdd1] bg-white/78 px-3 py-2 text-[12px] font-medium text-slate-700 transition-colors hover:border-[#7199a2] hover:bg-[#e5eff0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b98a2]"
+              >
+                {t(option.en, option.zh)}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#587d86]">
+            {t('Noted for today', '今天已记下')}
+          </p>
+          <p className="mt-1.5 text-[14px] font-medium leading-5 text-slate-800">
+            {selectedOption
+              ? t(selectedOption.responseEn, selectedOption.responseZh)
+              : t('I have made space for how I feel today.', '我已经为今天的感受留出了空间。')}
+          </p>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={(event) => onSayMore(event.currentTarget)}
+              className="cursor-pointer rounded-full bg-[#6b98a2] px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-[#5b8893] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b98a2]"
+            >
+              {t('Say more', '继续说说')}
+            </button>
+            {selectedOption?.offerHarbor && (
+              <button
+                type="button"
+                onClick={onGoToHarbor}
+                className="cursor-pointer rounded-full border border-[#87a6ad] bg-white/72 px-4 py-2 text-[12px] font-semibold text-[#365d67] transition-colors hover:bg-[#dfebed] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b98a2]"
+              >
+                {t('Go to Harbor', '去栖息地')}
+              </button>
+            )}
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+function OverlayLoading({ label }: { label: string }) {
+  return (
+    <div className="flex h-full min-h-32 items-center justify-center text-sm font-medium text-slate-500">
+      {label}
+    </div>
   );
 }
 
@@ -642,17 +806,19 @@ function OverlayShell({
   title,
   onClose,
   children,
+  className = 'z-30',
 }: {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="absolute inset-0 z-30 flex items-center justify-center bg-slate-900/16 px-4 py-4 backdrop-blur-[2px]"
+      className={`absolute inset-0 ${className} flex items-center justify-center bg-slate-900/16 px-4 py-4 backdrop-blur-[2px]`}
       onClick={onClose}
     >
       <motion.div

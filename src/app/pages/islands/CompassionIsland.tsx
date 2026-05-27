@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, Heart, MessageCircle, Wind, BookHeart, Send, Sparkles, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Wind, BookHeart, Send, Sparkles, Pencil, Trash2 } from 'lucide-react';
 import { useMindIslands } from '../../context/MindIslandsContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
@@ -44,12 +44,12 @@ export function CompassionIsland() {
     updateCompassionJournal,
     deleteCompassionJournal,
     addBreathingSession,
+    addMemoryEntry,
   } = useMindIslands();
   const [activeTab, setActiveTab] = useState<'chat' | 'breathe' | 'journal'>('chat');
   const [showSuccess, setShowSuccess] = useState(false);
   const [editingJournalId, setEditingJournalId] = useState<string | null>(null);
   
-  const island = progress.islands.find(i => i.id === 'compassion');
   const today = getDateKey();
   const todayJournal = [...progress.compassionJournals].reverse().find(j => j.date === today);
   const editingJournal = editingJournalId
@@ -330,6 +330,29 @@ export function CompassionIsland() {
     }
   };
 
+  const isHarborContentSavedToMemories = (content: string) =>
+    progress.memoryEntries.some(
+      (entry) => entry.source === 'harbor-saved' && entry.content === content.trim(),
+    );
+
+  const saveHarborContentToMemories = (title: string, content: string, date: string) => {
+    if (!content.trim() || isHarborContentSavedToMemories(content)) return;
+    addMemoryEntry({
+      date,
+      title,
+      content: content.trim(),
+      tags: [t('reflection', '反思')],
+      source: 'harbor-saved',
+      template: 'general',
+    });
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
+  };
+  const conversationSummary = chatHistory
+    .slice(-2)
+    .map((message) => `${message.role === 'user' ? t('Me', '我') : t('Reflection', '回应')}: ${message.content}`)
+    .join('\n');
+
   useEffect(() => {
     setChatHistory(loadCompassionChatHistory(compassionChatStorageKey));
   }, [compassionChatStorageKey]);
@@ -408,48 +431,19 @@ export function CompassionIsland() {
 
   return (
     <SceneShell>
-      <div className="mx-auto max-w-6xl p-6 space-y-6">
+      <div className="harbor-screen mx-auto max-w-6xl space-y-4 px-4 pb-8 pt-5 text-slate-800">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between"
+          className="harbor-surface flex items-center gap-3 rounded-2xl p-3"
         >
-          <div className="flex items-center gap-4">
-            <Button
-              onClick={() => navigate('/')}
-              variant="ghost"
-              className="text-foreground hover:bg-white/10"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="text-3xl font-medium text-foreground flex items-center gap-3">
-                <span className="text-4xl">{island?.icon}</span>
-                {island?.name}
-              </h1>
-              <p className="text-muted-foreground">{t('A safe space for reflection and care', '一个用于反思与自我照顾的安全空间')}</p>
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="text-3xl font-bold" style={{ color: island?.color }}>
-              {island?.streak} day streak
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Gentle Welcome Message */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-[#8bb3bc]/12 to-[#6b98a2]/12 backdrop-blur-md border border-[#8bb3bc]/20 rounded-2xl p-6"
-        >
-          <div className="flex items-start gap-3">
-            <Heart className="w-6 h-6 text-[#6b98a2] flex-shrink-0 mt-1" />
-            <div>
-              <p className="text-foreground mb-2">{t('This is your space to rest, reflect, and be kind to yourself.', '这是你用来休息、反思和善待自己的空间。')}</p>
-              <p className="text-sm text-muted-foreground">{t("There's no pressure here. Take what you need.", '这里没有压力，只需要拿走你此刻需要的部分。')}</p>
-            </div>
+          <Button onClick={() => navigate('/')} variant="ghost" aria-label={t('Back to home', '返回首页')} className="text-slate-700 hover:bg-white/50">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-medium text-slate-800">{t('Harbor', '栖息地')}</h1>
+            <p className="text-sm text-slate-600">{t('Rest, reflect, or breathe', '休息、倾诉或呼吸')}</p>
           </div>
         </motion.div>
 
@@ -458,14 +452,14 @@ export function CompassionIsland() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="flex gap-2 bg-background/10 backdrop-blur-md border border-white/10 rounded-2xl p-2"
+          className="harbor-surface flex gap-2 rounded-2xl p-2"
         >
           <button
             onClick={() => setActiveTab('chat')}
             className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all ${
               activeTab === 'chat'
                 ? 'bg-[#8bb3bc]/20 text-[#6b98a2]'
-                : 'text-muted-foreground hover:bg-white/5'
+                : 'text-slate-500 hover:bg-white/55'
             }`}
           >
             <MessageCircle className="w-5 h-5" />
@@ -476,7 +470,7 @@ export function CompassionIsland() {
             className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all ${
               activeTab === 'breathe'
                 ? 'bg-[#8bb3bc]/20 text-[#6b98a2]'
-                : 'text-muted-foreground hover:bg-white/5'
+                : 'text-slate-500 hover:bg-white/55'
             }`}
           >
             <Wind className="w-5 h-5" />
@@ -487,7 +481,7 @@ export function CompassionIsland() {
             className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all ${
               activeTab === 'journal'
                 ? 'bg-[#8bb3bc]/20 text-[#6b98a2]'
-                : 'text-muted-foreground hover:bg-white/5'
+                : 'text-slate-500 hover:bg-white/55'
             }`}
           >
             <BookHeart className="w-5 h-5" />
@@ -500,9 +494,9 @@ export function CompassionIsland() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-background/10 backdrop-blur-md border border-white/10 rounded-2xl p-6 h-[500px] flex flex-col"
+            className="harbor-surface flex h-[min(66dvh,500px)] flex-col rounded-2xl p-4"
           >
-              <h2 className="text-xl font-medium text-foreground mb-4 flex items-center gap-2">
+              <h2 className="mb-3 flex items-center gap-2 text-lg font-medium text-slate-800">
                 <MessageCircle className="w-5 h-5" />
                 {t('Self-Compassion Chat', '自我关怀对话')}
               </h2>
@@ -510,10 +504,10 @@ export function CompassionIsland() {
                 <span
                   className={`inline-flex items-center rounded-full px-2 py-1 text-[11px] ${
                     apiStatus === 'ready'
-                      ? 'bg-emerald-500/20 text-emerald-200'
+                      ? 'bg-emerald-100 text-emerald-700'
                       : apiStatus === 'checking'
-                        ? 'bg-amber-500/20 text-amber-200'
-                        : 'bg-red-500/20 text-red-200'
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-red-100 text-red-700'
                   }`}
                 >
                   {apiStatus === 'ready'
@@ -523,17 +517,17 @@ export function CompassionIsland() {
                       : t('AI offline (check backend / API key)', 'AI 离线（请检查后端 / API Key）')}
                 </span>
               </div>
-              <p className="mb-4 text-xs text-muted-foreground">
+              <p className="mb-4 text-xs text-slate-500">
                 {t(
-                  'This chat can reference your recent island records to respond with context.',
-                  '这个对话会参考你最近的岛屿记录来给出更有上下文的回应。',
+                  'This chat can reference recent saved context when it helps.',
+                  '需要时，这个对话会参考近期已保存的内容。',
                 )}
               </p>
 
             {/* Chat Messages */}
             <div className="flex-1 overflow-y-auto hide-scrollbar space-y-4 mb-4">
               {chatHistory.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
+                <div className="py-12 text-center text-slate-500">
                   <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
                   <p className="mb-2">{t('I am here to listen to myself', '我在这里听见自己')}</p>
                   <p className="text-sm">{t('Share what feels heavy or meaningful right now', '分享你现在感到沉重或有意义的事')}</p>
@@ -549,7 +543,7 @@ export function CompassionIsland() {
                         className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                           message.role === 'user'
                             ? 'bg-primary text-primary-foreground'
-                            : 'bg-[#8bb3bc]/10 border border-[#8bb3bc]/20 text-foreground'
+                            : 'bg-[#e6eff1] border border-[#c5dade] text-slate-800'
                         }`}
                       >
                         <p className="text-sm">{message.content}</p>
@@ -578,7 +572,7 @@ export function CompassionIsland() {
                 }}
                 placeholder={t("Share what's on your mind...", '说说你现在的心情和想法...')}
                 disabled={isChatSending}
-                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#6b98a2]/50"
+                className="flex-1 rounded-xl border border-[#c5dade] bg-white/80 px-4 py-3 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6b98a2]/50"
               />
               <Button
                 onClick={handleSendMessage}
@@ -588,6 +582,24 @@ export function CompassionIsland() {
                 <Send className="w-5 h-5" />
               </Button>
             </div>
+            {conversationSummary && (
+              <button
+                type="button"
+                disabled={isHarborContentSavedToMemories(conversationSummary)}
+                onClick={() =>
+                  saveHarborContentToMemories(
+                    t('A Harbor reflection I chose to keep', '我选择留下的栖息地反思'),
+                    conversationSummary,
+                    today,
+                  )
+                }
+                className="mt-3 self-end rounded-full bg-[#e4eef0] px-4 py-2 text-xs font-medium text-[#527a84] disabled:opacity-50"
+              >
+                {isHarborContentSavedToMemories(conversationSummary)
+                  ? t('Saved to Memories', '已保存到记忆')
+                  : t('Save summary to Memories', '保存摘要到记忆')}
+              </button>
+            )}
           </motion.div>
         )}
 
@@ -596,9 +608,9 @@ export function CompassionIsland() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-background/10 backdrop-blur-md border border-white/10 rounded-2xl p-8"
+            className="harbor-surface rounded-2xl p-5"
           >
-            <h2 className="text-xl font-medium text-foreground mb-6 flex items-center gap-2">
+            <h2 className="mb-6 flex items-center gap-2 text-xl font-medium text-slate-800">
               <Wind className="w-5 h-5" />
               Breathing Exercise
             </h2>
@@ -675,10 +687,10 @@ export function CompassionIsland() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-background/10 backdrop-blur-md border border-white/10 rounded-2xl p-8"
+            className="harbor-surface rounded-2xl p-5"
           >
             <div className="mb-6 flex items-center justify-between gap-3">
-              <h2 className="text-xl font-medium text-foreground flex items-center gap-2">
+              <h2 className="flex items-center gap-2 text-xl font-medium text-slate-800">
                 <BookHeart className="w-5 h-5" />
                 Self-Compassion Journal
               </h2>
@@ -734,7 +746,7 @@ export function CompassionIsland() {
                   value={journalForm.entry}
                   onChange={(e) => setJournalForm({ ...journalForm, entry: e.target.value })}
                   placeholder="Write freely, without judgment..."
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground min-h-48 focus:outline-none focus:ring-2 focus:ring-[#6b98a2]/50"
+                  className="min-h-40 w-full rounded-xl border border-[#c5dade] bg-white/80 px-4 py-3 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6b98a2]/50"
                 />
               </div>
 
@@ -752,11 +764,7 @@ export function CompassionIsland() {
                           : 'bg-white/5 text-muted-foreground hover:bg-white/10'
                       }`}
                     >
-                      {mood === 1 && '😔'}
-                      {mood === 2 && '😐'}
-                      {mood === 3 && '🙂'}
-                      {mood === 4 && '😊'}
-                      {mood === 5 && '😄'}
+                      {mood}
                     </button>
                   ))}
                 </div>
@@ -791,15 +799,7 @@ export function CompassionIsland() {
                                 day: 'numeric'
                               })}
                             </div>
-                            {journal.mood && (
-                              <div className="text-lg">
-                                {journal.mood === 1 && '😔'}
-                                {journal.mood === 2 && '😐'}
-                                {journal.mood === 3 && '🙂'}
-                                {journal.mood === 4 && '😊'}
-                                {journal.mood === 5 && '😄'}
-                              </div>
-                            )}
+                            {journal.mood && <div className="text-xs text-muted-foreground">{t('Mood', '感受')} {journal.mood}/5</div>}
                           </div>
                           {journal.reflectionPrompt && (
                             <div className="text-xs text-[#6b98a2] mb-1">{journal.reflectionPrompt}</div>
@@ -808,6 +808,21 @@ export function CompassionIsland() {
                             {journal.journalEntry}
                           </div>
                           <div className="mt-2 flex justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              disabled={isHarborContentSavedToMemories(journal.journalEntry)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                saveHarborContentToMemories(
+                                  t('A reflection I chose to keep', '我选择留下的反思'),
+                                  journal.journalEntry,
+                                  journal.date,
+                                );
+                              }}
+                            >
+                              {isHarborContentSavedToMemories(journal.journalEntry) ? t('Saved', '已保存') : t('Save to Memories', '保存到记忆')}
+                            </Button>
                             <Button
                               size="sm"
                               variant="ghost"

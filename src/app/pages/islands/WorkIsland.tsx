@@ -38,7 +38,7 @@ export function WorkIsland() {
     { key: 'planned', label: 'Planned', color: '#64748b' },
     { key: 'applied', label: 'Applied', color: '#3b82f6' },
     { key: 'waiting', label: 'Waiting', color: '#f59e0b' },
-    { key: 'interview', label: 'Interview', color: '#a855f7' },
+    { key: 'interview', label: 'Interview', color: '#6b98a2' },
     { key: 'outcome', label: 'Outcome', color: '#10b981' },
   ];
 

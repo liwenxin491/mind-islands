@@ -704,6 +704,7 @@ const mergeDraftInsight = (baseInsight = {}, nextInsight = {}, message = '') => 
     ...nextInsight,
     detectedIslands,
     todos,
+    memory: nextInsight.memory || baseInsight.memory,
     entries: mergedEntries,
   };
 };
@@ -742,6 +743,35 @@ const normalizeInsights = (
     : [];
 
   const rawEntries = typeof raw.entries === 'object' && raw.entries ? raw.entries : {};
+  const rawMemory = typeof raw.memory === 'object' && raw.memory ? raw.memory : null;
+  const memory =
+    rawMemory && typeof rawMemory.content === 'string' && rawMemory.content.trim()
+      ? {
+          title:
+            typeof rawMemory.title === 'string' && rawMemory.title.trim()
+              ? rawMemory.title.trim()
+              : s('A memory worth keeping', '一条值得留下的记忆'),
+          content: polishLogText(rawMemory.content),
+          tags: Array.isArray(rawMemory.tags)
+            ? Array.from(
+                new Set(
+                  rawMemory.tags
+                    .filter((tag) => typeof tag === 'string')
+                    .map((tag) => tag.trim())
+                    .filter(Boolean),
+                ),
+              ).slice(0, 8)
+            : [],
+          template:
+            ['general', 'body', 'progress', 'connection'].includes(rawMemory.template)
+              ? rawMemory.template
+              : 'general',
+          fields:
+            rawMemory.fields && typeof rawMemory.fields === 'object'
+              ? rawMemory.fields
+              : undefined,
+        }
+      : undefined;
   const entries = {
     ...rawEntries,
     body: rawEntries.body
@@ -819,26 +849,13 @@ const normalizeInsights = (
     finalEntries = pickEntriesByIsland(entries, selectedIsland);
     needsFollowup = false;
     followupQuestion = '';
-  } else if (candidateIslands.length > 1 && finalTodos.length === 0) {
-    needsFollowup = true;
-    followupQuestion = `I can log this. Which island should I put it in: ${candidateIslands
-      .map((id) => id.charAt(0).toUpperCase() + id.slice(1))
-      .join(', ')}?`;
-    if (preferredLanguage === 'zh') {
-      followupQuestion = `我可以帮你记录。你希望放到哪个岛屿：${candidateIslands
-        .map((id) => {
-          if (id === 'body') return '健康';
-          if (id === 'work') return '工作';
-          if (id === 'learning') return '学习';
-          if (id === 'relationships') return '关系';
-          if (id === 'curiosity') return '好奇';
-          if (id === 'compassion') return '自我关怀';
-          return id;
-        })
-        .join('、')}？`;
-    }
-    finalEntries = {};
+  }
+
+  if (memory) {
     finalDetected = [];
+    finalEntries = {};
+    needsFollowup = false;
+    followupQuestion = '';
   }
 
   return {
@@ -851,6 +868,7 @@ const normalizeInsights = (
     followupQuestion,
     detectedIslands: finalDetected,
     todos: finalTodos,
+    memory,
     entries: finalEntries,
   };
 };
@@ -904,6 +922,22 @@ Return STRICT JSON only (no markdown, no comments), exactly with this shape:
       "islandId": "body|work|learning|relationships|curiosity|compassion or omitted"
     }
   ],
+  "memory": {
+    "title": "short title for a revisitable memory",
+    "content": "polished account of the experience or reflection",
+    "tags": ["short user-facing theme tags"],
+    "template": "general|body|progress|connection",
+    "fields": {
+      "energyLevel": 3,
+      "sleepTime": "23:00",
+      "workoutCompleted": true,
+      "workoutDuration": 30,
+      "progressNote": "optional",
+      "learned": "optional",
+      "personName": "optional",
+      "emotionalResult": 4
+    }
+  },
   "entries": {
     "body": {
       "sleepTime": "HH:mm or omitted",
@@ -963,9 +997,9 @@ Extraction rules:
 - Use the same timezone offset as Current local datetime for all deadline/remindAt values.
 - If a reminder is implied ("remind me", "提醒我"), set remindAt. Otherwise you may set remindAt to 30 minutes before deadline when confidence is high.
 - For clear task-intent messages (e.g., "I need to do laundry tomorrow"), DO NOT ask follow-up; directly create todo with best-effort deadline/remindAt.
-- Usually one message should map to one island.
-- If the message could belong to multiple islands and the user did not specify one clearly, set needsFollowup=true and ask which island to use.
-- If pendingContext exists and the user replies with an island choice, use that island and complete logging.
+- For a lived moment, reflection, progress update, connection, or observation worth revisiting, create a memory draft with concise theme tags. The user never needs to choose an island first.
+- Put precise values into memory.fields and select a lightweight memory.template when useful. Only use legacy structured entries when a memory draft is not appropriate.
+- If pendingContext exists, use the extra detail to complete the memory or task draft.
 - If draftContext exists, update the existing draft instead of starting from empty.
 - If draftContext exists and user does not mention a field, keep previous confirmed draft values.
 - If draftContext exists and user asks to remove something, remove it explicitly from entries/todos.

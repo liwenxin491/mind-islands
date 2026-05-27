@@ -182,6 +182,49 @@ export interface ChatMessage {
   timestamp: string;
 }
 
+export type QuickPromptCategory = 'sleep' | 'mood' | 'energy' | 'emotion' | 'reflection';
+export type QuickPromptTrigger = 'morning' | 'afternoon' | 'evening' | 'recent-pattern' | 'default';
+
+export interface QuickPromptCheckIn {
+  id: string;
+  createdAt: string;
+  promptId: string;
+  promptText: string;
+  category: QuickPromptCategory;
+  trigger: QuickPromptTrigger;
+  answerId: string;
+  answer: string;
+  continuedToQuickLog?: boolean;
+  continuedToHarbor?: boolean;
+}
+
+export type MemorySource = 'manual' | 'ai' | 'inspiration' | 'harbor-saved' | 'plan-check-in';
+export type MemoryTemplate = 'general' | 'body' | 'progress' | 'connection';
+
+export interface MemoryEntryFields {
+  energyLevel?: number;
+  sleepTime?: string;
+  wakeTime?: string;
+  workoutCompleted?: boolean;
+  workoutDuration?: number;
+  progressNote?: string;
+  learned?: string;
+  personName?: string;
+  emotionalResult?: number;
+}
+
+export interface MemoryEntry {
+  id: string;
+  date: string;
+  createdAt: string;
+  title: string;
+  content: string;
+  tags: string[];
+  source: MemorySource;
+  template?: MemoryTemplate;
+  fields?: MemoryEntryFields;
+}
+
 // Character System
 export interface CharacterState {
   mood: CharacterMood;
@@ -195,7 +238,7 @@ export interface CharacterState {
 export interface EnvironmentState {
   lightLevel: number; // 0-100
   decorations: string[]; // ["flowers", "lanterns", etc.]
-  weather: 'clear' | 'cloudy' | 'starry' | 'rainy';
+  weather: 'clear' | 'cloudy' | 'rainy';
   specialEffects: string[]; // ["glow", "sparkles", etc.]
 }
 
@@ -238,6 +281,13 @@ export interface AIInsightPayload {
     importance?: number; // 1-5 optional hint from AI
     islandId?: IslandType;
   }>;
+  memory?: {
+    title: string;
+    content: string;
+    tags?: string[];
+    template?: MemoryTemplate;
+    fields?: MemoryEntryFields;
+  };
   entries: {
     body?: Partial<Omit<HealthCheckIn, 'id' | 'date'>>;
     work?: Partial<Omit<WorkDailyLog, 'id' | 'date'>>;
@@ -259,6 +309,8 @@ export interface TodoItem {
   remindAt?: string;
   estimatedMinutes?: number;
   importance?: number; // 1-5 optional AI/user signal
+  priorityAdjustment?: number; // manual tuning on top of auto score
+  autoPriorityScore?: number;
   priorityScore: number; // 0-100
   priorityLabel: 'high' | 'medium' | 'low';
   priorityReason?: string;
@@ -295,9 +347,9 @@ export interface UserProgress {
   todos: TodoItem[];
   reminders: Reminder[];
   chatHistory: ChatMessage[];
-  
-  // Onboarding
-  onboardingComplete: boolean;
+  quickPromptCheckIns: QuickPromptCheckIn[];
+  memoryEntries: MemoryEntry[];
+  pinnedMemoryThemes: string[];
 }
 
 // Weekly Summary

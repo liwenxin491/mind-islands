@@ -11,6 +11,8 @@ import type {
   IslandType,
   LearningDailyLog,
   LearningGoal,
+  MemoryEntry,
+  QuickPromptCheckIn,
   RelationshipLog,
   RoutineSettings,
   TodoItem,
@@ -28,8 +30,6 @@ interface MindIslandsContextType {
 
   // Character
   updateCharacterMood: (mood: CharacterMood) => void;
-  selectCharacter: (name: string) => void;
-  completeOnboarding: () => void;
 
   // Islands
   updateIslandStreak: (islandId: IslandType) => void;
@@ -82,22 +82,36 @@ interface MindIslandsContextType {
   deleteCompassionJournal: (id: string) => void;
   addBreathingSession: (session: Omit<BreathingSession, 'id'>) => void;
   addChatMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
+  addQuickPromptCheckIn: (
+    checkIn: Omit<QuickPromptCheckIn, 'id' | 'createdAt'>,
+  ) => QuickPromptCheckIn;
+  updateQuickPromptCheckIn: (
+    id: string,
+    updates: Partial<Pick<QuickPromptCheckIn, 'continuedToQuickLog' | 'continuedToHarbor'>>,
+  ) => void;
+
+  // Unified memories
+  addMemoryEntry: (entry: Omit<MemoryEntry, 'id' | 'createdAt'> & { createdAt?: string }) => MemoryEntry;
+  updateMemoryEntry: (id: string, updates: Partial<Omit<MemoryEntry, 'id'>>) => void;
+  deleteMemoryEntry: (id: string) => void;
+  togglePinnedMemoryTheme: (tag: string) => void;
 
   // AI structured logging
   applyAIInsights: (
     insight: AIInsightPayload,
     sourceMessage?: string,
-  ) => { islands: IslandType[]; todosAdded: number };
+  ) => { islands: IslandType[]; todosAdded: number; memoriesAdded: number };
 
   // General
   addTodo: (
-    todo: Omit<TodoItem, 'id' | 'priorityScore' | 'priorityLabel' | 'priorityReason'>,
+    todo: Omit<TodoItem, 'id' | 'autoPriorityScore' | 'priorityScore' | 'priorityLabel' | 'priorityReason'>,
   ) => void;
   updateTodo: (
     todoId: string,
-    updates: Partial<Omit<TodoItem, 'id' | 'priorityScore' | 'priorityLabel' | 'priorityReason'>>,
+    updates: Partial<Omit<TodoItem, 'id' | 'autoPriorityScore' | 'priorityScore' | 'priorityLabel' | 'priorityReason'>>,
   ) => void;
   setTodoImportance: (todoId: string, importance: number) => void;
+  setTodoPriorityAdjustment: (todoId: string, adjustment: number) => void;
   toggleTodo: (todoId: string) => void;
   deleteTodo: (todoId: string) => void;
   cleanupCompletedTodos: (olderThanDays: number) => number;
@@ -123,14 +137,6 @@ const polishLogText = (value?: string) => {
   const normalized = withPronoun.charAt(0).toUpperCase() + withPronoun.slice(1);
   if (/[.!?]$/.test(normalized)) return normalized;
   return `${normalized}.`;
-};
-const appendUniqueSentence = (existing: string | undefined, addition: string) => {
-  const base = (existing || '').trim();
-  const next = polishLogText(addition);
-  if (!next) return base;
-  if (!base) return next;
-  if (base.includes(next)) return base;
-  return `${base} ${next}`.trim();
 };
 const formatGoalTarget = (targetValue?: number, unitLabel?: string) => {
   if (!targetValue) return '';
@@ -162,6 +168,20 @@ const mergeText = (base?: string, incoming?: string) => {
   if (!incoming) return base;
   if (base.includes(incoming)) return base;
   return `${base} | ${incoming}`;
+};
+const normalizeTags = (tags: unknown) => {
+  if (!Array.isArray(tags)) return [];
+  const seen = new Set<string>();
+  return tags
+    .map((tag) => (typeof tag === 'string' ? tag.trim().replace(/\s+/g, ' ') : ''))
+    .filter((tag) => {
+      if (!tag) return false;
+      const key = tag.toLocaleLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 12);
 };
 
 const parseEstimatedMinutes = (text = '') => {
@@ -212,10 +232,22 @@ const formatHoursDistance = (hours: number) => {
 };
 
 const computeTodoPriority = (
-  todo: Pick<TodoItem, 'text' | 'details' | 'deadline' | 'remindAt' | 'estimatedMinutes' | 'importance' | 'completed' | 'islandId'>,
+  todo: Pick<
+    TodoItem,
+    | 'text'
+    | 'details'
+    | 'deadline'
+    | 'remindAt'
+    | 'estimatedMinutes'
+    | 'importance'
+    | 'completed'
+    | 'islandId'
+    | 'priorityAdjustment'
+  >,
 ) => {
   if (todo.completed) {
     return {
+      autoPriorityScore: 0,
       priorityScore: 0,
       priorityLabel: 'low' as const,
       priorityReason: 'Completed',
@@ -301,15 +333,26 @@ const computeTodoPriority = (
     score += 4;
   }
 
-  const priorityScore = clamp(Math.round(score), 0, 100);
+  const autoPriorityScore = clamp(Math.round(score), 0, 100);
+  const adjustment =
+    typeof todo.priorityAdjustment === 'number' && Number.isFinite(todo.priorityAdjustment)
+      ? clamp(Math.round(todo.priorityAdjustment), -100, 100)
+      : 0;
+  const priorityScore = clamp(autoPriorityScore + adjustment, 0, 100);
   const priorityLabel = priorityScore >= 70 ? 'high' : priorityScore >= 40 ? 'medium' : 'low';
-  const priorityReason = reasons.slice(0, 2).join(' • ') || 'General task';
+  const priorityReason = [
+    reasons.slice(0, 2).join(' • ') || 'General task',
+    adjustment === 0 ? '' : adjustment > 0 ? `Manual +${adjustment}` : `Manual ${adjustment}`,
+  ]
+    .filter(Boolean)
+    .join(' • ');
 
-  return { priorityScore, priorityLabel, priorityReason, estimatedMinutes };
+  return { autoPriorityScore, priorityScore, priorityLabel, priorityReason, estimatedMinutes };
 };
 
 const normalizeTodoRecord = (
-  todo: Omit<TodoItem, 'priorityScore' | 'priorityLabel' | 'priorityReason'> & {
+  todo: Omit<TodoItem, 'autoPriorityScore' | 'priorityScore' | 'priorityLabel' | 'priorityReason'> & {
+    autoPriorityScore?: number;
     priorityScore?: number;
     priorityLabel?: TodoItem['priorityLabel'];
     priorityReason?: string;
@@ -328,6 +371,10 @@ const normalizeTodoRecord = (
     typeof todo.importance === 'number' && Number.isFinite(todo.importance)
       ? clamp(Math.round(todo.importance), 1, 5)
       : undefined;
+  const priorityAdjustment =
+    typeof todo.priorityAdjustment === 'number' && Number.isFinite(todo.priorityAdjustment)
+      ? clamp(Math.round(todo.priorityAdjustment), -100, 100)
+      : 0;
   const computed = computeTodoPriority({
     text,
     details,
@@ -337,6 +384,7 @@ const normalizeTodoRecord = (
     importance,
     completed: Boolean(todo.completed),
     islandId: todo.islandId,
+    priorityAdjustment,
   });
 
   return {
@@ -348,6 +396,8 @@ const normalizeTodoRecord = (
     completedAt,
     estimatedMinutes: computed.estimatedMinutes,
     importance,
+    priorityAdjustment,
+    autoPriorityScore: computed.autoPriorityScore,
     priorityScore: computed.priorityScore,
     priorityLabel: computed.priorityLabel,
     priorityReason: computed.priorityReason,
@@ -385,7 +435,8 @@ const getTotalEntries = (progress: UserProgress) =>
   progress.curiosityLogs.length +
   progress.curiosityIdeas.length +
   progress.compassionJournals.length +
-  progress.breathingSessions.length;
+  progress.breathingSessions.length +
+  progress.memoryEntries.length;
 
 const getTodayActivitySet = (progress: UserProgress): Set<IslandType> => {
   const today = getTodayISO();
@@ -531,7 +582,7 @@ const deriveEnvironmentState = (
   return {
     lightLevel: 58,
     decorations: ['small-lantern'],
-    weather: 'starry',
+    weather: 'clear',
     specialEffects: ['ambient-glow'],
   };
 };
@@ -546,7 +597,7 @@ const defaultProgress: UserProgress = {
     environmentState: {
       lightLevel: 50,
       decorations: [],
-      weather: 'starry',
+      weather: 'clear',
       specialEffects: [],
     },
   },
@@ -573,7 +624,7 @@ const defaultProgress: UserProgress = {
       id: 'learning',
       name: 'Learning',
       icon: '📚',
-      color: '#a855f7',
+      color: '#5e9cc0',
       description: 'Knowledge and skill development',
       streak: 0,
       completedToday: false,
@@ -621,7 +672,9 @@ const defaultProgress: UserProgress = {
   todos: [],
   reminders: [],
   chatHistory: [],
-  onboardingComplete: false,
+  quickPromptCheckIns: [],
+  memoryEntries: [],
+  pinnedMemoryThemes: [],
 };
 
 const mergeRoutineSettings = (parsedRoutine: any): RoutineSettings => {
@@ -721,9 +774,41 @@ const normalizeLearningGoalRecord = (goal: any): LearningGoal => ({
   unitLabel: typeof goal?.unitLabel === 'string' ? goal.unitLabel : undefined,
 });
 
+const normalizeMemoryEntryRecord = (entry: any): MemoryEntry | null => {
+  if (!entry || typeof entry !== 'object') return null;
+  const content = typeof entry.content === 'string' ? entry.content.trim() : '';
+  const title = typeof entry.title === 'string' ? entry.title.trim() : '';
+  if (!content && !title) return null;
+  const validSources: MemoryEntry['source'][] = [
+    'manual',
+    'ai',
+    'inspiration',
+    'harbor-saved',
+    'plan-check-in',
+  ];
+  const validTemplates: NonNullable<MemoryEntry['template']>[] = [
+    'general',
+    'body',
+    'progress',
+    'connection',
+  ];
+  return {
+    id: typeof entry.id === 'string' && entry.id ? entry.id : Math.random().toString(36).slice(2),
+    date: typeof entry.date === 'string' && entry.date ? entry.date : getTodayISO(),
+    createdAt: normalizeDateTime(entry.createdAt) || getNowInAppTimeZoneISO(),
+    title: title || 'Memory',
+    content,
+    tags: normalizeTags(entry.tags),
+    source: validSources.includes(entry.source) ? entry.source : 'manual',
+    template: validTemplates.includes(entry.template) ? entry.template : 'general',
+    fields: entry.fields && typeof entry.fields === 'object' ? entry.fields : undefined,
+  };
+};
+
 const hydrateProgress = (input: any): UserProgress => {
   if (!input || typeof input !== 'object') return defaultProgress;
-  const parsed = input;
+  const parsed = { ...input };
+  delete parsed.onboardingComplete;
   const migratedRelationshipLogs = (parsed.relationshipLogs || []).map((log: any) => ({
     ...log,
     category: log.category || 'other',
@@ -738,10 +823,18 @@ const hydrateProgress = (input: any): UserProgress => {
       }),
     )
     .filter((todo: TodoItem) => Boolean(todo.text));
+  const migratedIslands = defaultProgress.islands.map((defaultIsland) => ({
+    ...defaultIsland,
+    ...((Array.isArray(parsed.islands) ? parsed.islands : []).find(
+      (island: any) => island?.id === defaultIsland.id,
+    ) || {}),
+    color: defaultIsland.color,
+  }));
 
   return {
     ...defaultProgress,
     ...parsed,
+    islands: migratedIslands,
     routineSettings: mergeRoutineSettings(parsed.routineSettings),
     healthCheckIns: parsed.healthCheckIns || [],
     workItems: parsed.workItems || [],
@@ -761,11 +854,24 @@ const hydrateProgress = (input: any): UserProgress => {
     compassionJournals: parsed.compassionJournals || [],
     breathingSessions: parsed.breathingSessions || [],
     todos: migratedTodos,
+    quickPromptCheckIns: Array.isArray(parsed.quickPromptCheckIns) ? parsed.quickPromptCheckIns : [],
+    memoryEntries: Array.isArray(parsed.memoryEntries)
+      ? parsed.memoryEntries.map(normalizeMemoryEntryRecord).filter((entry: MemoryEntry | null): entry is MemoryEntry => Boolean(entry))
+      : [],
+    pinnedMemoryThemes: normalizeTags(parsed.pinnedMemoryThemes),
     character: {
       ...defaultProgress.character,
       ...parsed.character,
       type: 'otter',
-      environmentState: parsed.character?.environmentState || defaultProgress.character.environmentState,
+      environmentState: {
+        ...defaultProgress.character.environmentState,
+        ...(parsed.character?.environmentState || {}),
+        weather:
+          parsed.character?.environmentState?.weather === 'cloudy' ||
+          parsed.character?.environmentState?.weather === 'rainy'
+            ? parsed.character.environmentState.weather
+            : 'clear',
+      },
     },
   };
 };
@@ -955,6 +1061,7 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
         const nextTodos = prev.todos.map((todo) => {
           const normalized = normalizeTodoRecord(todo);
           if (
+            normalized.autoPriorityScore !== todo.autoPriorityScore ||
             normalized.priorityScore !== todo.priorityScore ||
             normalized.priorityLabel !== todo.priorityLabel ||
             normalized.priorityReason !== todo.priorityReason ||
@@ -984,20 +1091,6 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
     setProgress((prev) => ({
       ...prev,
       character: { ...prev.character, mood },
-    }));
-  };
-
-  const selectCharacter = (name: string) => {
-    setProgress((prev) => ({
-      ...prev,
-      character: { ...prev.character, type: 'otter', name },
-    }));
-  };
-
-  const completeOnboarding = () => {
-    setProgress((prev) => ({
-      ...prev,
-      onboardingComplete: true,
     }));
   };
 
@@ -1139,27 +1232,23 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
           : goal,
       );
 
-      const todayLog = prev.workDailyLogs.find((log) => log.date === today);
-      const nextProgressStep = appendUniqueSentence(
-        todayLog?.progressStep,
-        buildWorkGoalCheckInText(targetGoal),
-      );
+      const progressNote = buildWorkGoalCheckInText(targetGoal);
       return {
         ...prev,
         workGoals: nextGoals,
-        workDailyLogs: todayLog
-          ? prev.workDailyLogs.map((log) =>
-              log.id === todayLog.id ? { ...log, progressStep: nextProgressStep } : log,
-            )
-          : [
-              ...prev.workDailyLogs,
-              {
-                id: generateId(),
-                date: today,
-                progressStep: nextProgressStep,
-                stressLevel: 3,
-              },
-            ],
+        memoryEntries: [
+          ...prev.memoryEntries,
+          {
+            id: generateId(),
+            date: today,
+            createdAt: now,
+            title: targetGoal.text,
+            content: progressNote,
+            tags: ['progress', 'work'],
+            source: 'plan-check-in',
+            template: 'progress',
+          },
+        ],
       };
     });
   };
@@ -1204,27 +1293,23 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
           : goal,
       );
 
-      const todayLog = prev.learningDailyLogs.find((log) => log.date === today);
-      const nextWhatILearned = appendUniqueSentence(
-        todayLog?.whatILearned,
-        buildLearningGoalCheckInText(targetGoal),
-      );
+      const progressNote = buildLearningGoalCheckInText(targetGoal);
       return {
         ...prev,
         learningGoals: nextGoals,
-        learningDailyLogs: todayLog
-          ? prev.learningDailyLogs.map((log) =>
-              log.id === todayLog.id ? { ...log, whatILearned: nextWhatILearned } : log,
-            )
-          : [
-              ...prev.learningDailyLogs,
-              {
-                id: generateId(),
-                date: today,
-                focusedStudyMinutes: 0,
-                whatILearned: nextWhatILearned,
-              },
-            ],
+        memoryEntries: [
+          ...prev.memoryEntries,
+          {
+            id: generateId(),
+            date: today,
+            createdAt: now,
+            title: targetGoal.ultimateGoal,
+            content: progressNote,
+            tags: ['progress', 'learning'],
+            source: 'plan-check-in',
+            template: 'progress',
+          },
+        ],
       };
     });
   };
@@ -1390,6 +1475,83 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  const addQuickPromptCheckIn = (
+    checkIn: Omit<QuickPromptCheckIn, 'id' | 'createdAt'>,
+  ): QuickPromptCheckIn => {
+    const newCheckIn = {
+      ...checkIn,
+      id: generateId(),
+      createdAt: getNowInAppTimeZoneISO(),
+    };
+    setProgress((prev) => ({
+      ...prev,
+      quickPromptCheckIns: [...prev.quickPromptCheckIns, newCheckIn],
+    }));
+    return newCheckIn;
+  };
+
+  const updateQuickPromptCheckIn = (
+    id: string,
+    updates: Partial<Pick<QuickPromptCheckIn, 'continuedToQuickLog' | 'continuedToHarbor'>>,
+  ) => {
+    setProgress((prev) => ({
+      ...prev,
+      quickPromptCheckIns: prev.quickPromptCheckIns.map((checkIn) =>
+        checkIn.id === id ? { ...checkIn, ...updates } : checkIn,
+      ),
+    }));
+  };
+
+  const addMemoryEntry = (
+    entry: Omit<MemoryEntry, 'id' | 'createdAt'> & { createdAt?: string },
+  ): MemoryEntry => {
+    const normalized = normalizeMemoryEntryRecord({
+      ...entry,
+      id: generateId(),
+      createdAt: entry.createdAt || getNowInAppTimeZoneISO(),
+    }) as MemoryEntry;
+    setProgress((prev) => ({
+      ...prev,
+      memoryEntries: [...prev.memoryEntries, normalized],
+    }));
+    return normalized;
+  };
+
+  const updateMemoryEntry = (id: string, updates: Partial<Omit<MemoryEntry, 'id'>>) => {
+    setProgress((prev) => ({
+      ...prev,
+      memoryEntries: prev.memoryEntries.map((entry) => {
+        if (entry.id !== id) return entry;
+        return normalizeMemoryEntryRecord({ ...entry, ...updates, id: entry.id }) || entry;
+      }),
+    }));
+  };
+
+  const deleteMemoryEntry = (id: string) => {
+    setProgress((prev) => ({
+      ...prev,
+      memoryEntries: prev.memoryEntries.filter((entry) => entry.id !== id),
+    }));
+  };
+
+  const togglePinnedMemoryTheme = (tag: string) => {
+    const normalized = normalizeTags([tag])[0];
+    if (!normalized) return;
+    setProgress((prev) => {
+      const exists = prev.pinnedMemoryThemes.some(
+        (item) => item.toLocaleLowerCase() === normalized.toLocaleLowerCase(),
+      );
+      return {
+        ...prev,
+        pinnedMemoryThemes: exists
+          ? prev.pinnedMemoryThemes.filter(
+              (item) => item.toLocaleLowerCase() !== normalized.toLocaleLowerCase(),
+            )
+          : [...prev.pinnedMemoryThemes, normalized],
+      };
+    });
+  };
+
   const applyAIInsights = (insight: AIInsightPayload, sourceMessage = '') => {
     const today = getTodayISO();
     const bodyEntry = insight.entries.body;
@@ -1453,6 +1615,9 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
       shouldWriteCompassion ? 'compassion' : null,
     ].filter((id): id is IslandType => Boolean(id));
 
+    const memoryDraft = insight.memory;
+    const shouldWriteMemory = Boolean(memoryDraft?.content?.trim()) && islands.length === 0;
+    const predictedMemoriesAdded = shouldWriteMemory ? 1 : 0;
     let predictedTodosAdded = 0;
     const todoShadow = [...progress.todos];
     if (Array.isArray(insight.todos) && insight.todos.length > 0) {
@@ -1480,6 +1645,23 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
     setProgress((prev) => {
       const next = { ...prev };
       const todosSeen = [...next.todos];
+
+      if (memoryDraft && shouldWriteMemory) {
+        const memory = normalizeMemoryEntryRecord({
+          id: generateId(),
+          date: today,
+          createdAt: getNowInAppTimeZoneISO(),
+          title: memoryDraft.title || 'Memory',
+          content: memoryDraft.content,
+          tags: memoryDraft.tags,
+          source: 'ai',
+          template: memoryDraft.template || 'general',
+          fields: memoryDraft.fields,
+        });
+        if (memory) {
+          next.memoryEntries = [...next.memoryEntries, memory];
+        }
+      }
 
       if (bodyEntry && shouldWriteBody) {
         const idx = next.healthCheckIns.findIndex((item) => item.date === today);
@@ -1700,11 +1882,11 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
     });
 
     islands.forEach((id) => updateIslandStreak(id));
-    return { islands, todosAdded: predictedTodosAdded };
+    return { islands, todosAdded: predictedTodosAdded, memoriesAdded: predictedMemoriesAdded };
   };
 
   const addTodo = (
-    todo: Omit<TodoItem, 'id' | 'priorityScore' | 'priorityLabel' | 'priorityReason'>,
+    todo: Omit<TodoItem, 'id' | 'autoPriorityScore' | 'priorityScore' | 'priorityLabel' | 'priorityReason'>,
   ) => {
     const normalizedTodo = normalizeTodoRecord({
       ...todo,
@@ -1737,7 +1919,7 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
 
   const updateTodo = (
     todoId: string,
-    updates: Partial<Omit<TodoItem, 'id' | 'priorityScore' | 'priorityLabel' | 'priorityReason'>>,
+    updates: Partial<Omit<TodoItem, 'id' | 'autoPriorityScore' | 'priorityScore' | 'priorityLabel' | 'priorityReason'>>,
   ) => {
     setProgress((prev) => ({
       ...prev,
@@ -1761,6 +1943,21 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
           ? normalizeTodoRecord({
               ...todo,
               importance: nextImportance,
+            })
+          : todo,
+      ),
+    }));
+  };
+
+  const setTodoPriorityAdjustment = (todoId: string, adjustment: number) => {
+    const nextAdjustment = clamp(Math.round(adjustment), -100, 100);
+    setProgress((prev) => ({
+      ...prev,
+      todos: prev.todos.map((todo) =>
+        todo.id === todoId
+          ? normalizeTodoRecord({
+              ...todo,
+              priorityAdjustment: nextAdjustment,
             })
           : todo,
       ),
@@ -1818,8 +2015,6 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
       value={{
         progress,
         updateCharacterMood,
-        selectCharacter,
-        completeOnboarding,
         updateIslandStreak,
         updateRoutineSettings,
         addHealthCheckIn,
@@ -1856,10 +2051,17 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
         deleteCompassionJournal,
         addBreathingSession,
         addChatMessage,
+        addQuickPromptCheckIn,
+        updateQuickPromptCheckIn,
+        addMemoryEntry,
+        updateMemoryEntry,
+        deleteMemoryEntry,
+        togglePinnedMemoryTheme,
         applyAIInsights,
         addTodo,
         updateTodo,
         setTodoImportance,
+        setTodoPriorityAdjustment,
         toggleTodo,
         deleteTodo,
         cleanupCompletedTodos,

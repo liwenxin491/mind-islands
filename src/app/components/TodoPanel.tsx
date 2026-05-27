@@ -10,7 +10,7 @@ import { Checkbox } from './ui/checkbox';
 
 export function TodoPanel({ variant = 'sidebar' }: { variant?: 'sidebar' | 'overlay' }) {
   const { t } = useLanguage();
-  const { progress, addTodo, updateTodo, setTodoImportance, toggleTodo, deleteTodo } = useMindIslands();
+  const { progress, addTodo, updateTodo, setTodoImportance, setTodoPriorityAdjustment, toggleTodo, deleteTodo } = useMindIslands();
   const isOverlay = variant === 'overlay';
   const [isAdding, setIsAdding] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
@@ -27,6 +27,7 @@ export function TodoPanel({ variant = 'sidebar' }: { variant?: 'sidebar' | 'over
   const [editTodoRemindAt, setEditTodoRemindAt] = useState('');
   const [editTodoEstimateMinutes, setEditTodoEstimateMinutes] = useState('');
   const [editTodoImportance, setEditTodoImportance] = useState('');
+  const [editTodoPriorityAdjustment, setEditTodoPriorityAdjustment] = useState('');
 
   const sortedTodos = useMemo(() => {
     return [...progress.todos].sort((a, b) => {
@@ -79,6 +80,7 @@ export function TodoPanel({ variant = 'sidebar' }: { variant?: 'sidebar' | 'over
     setEditTodoRemindAt(toDateTimeLocal(todo.remindAt));
     setEditTodoEstimateMinutes(todo.estimatedMinutes ? String(todo.estimatedMinutes) : '');
     setEditTodoImportance(todo.importance ? String(todo.importance) : '');
+    setEditTodoPriorityAdjustment(typeof todo.priorityAdjustment === 'number' ? String(todo.priorityAdjustment) : '0');
   };
 
   const cancelEditTodo = () => {
@@ -89,6 +91,7 @@ export function TodoPanel({ variant = 'sidebar' }: { variant?: 'sidebar' | 'over
     setEditTodoRemindAt('');
     setEditTodoEstimateMinutes('');
     setEditTodoImportance('');
+    setEditTodoPriorityAdjustment('');
   };
 
   const saveEditTodo = () => {
@@ -100,8 +103,15 @@ export function TodoPanel({ variant = 'sidebar' }: { variant?: 'sidebar' | 'over
       remindAt: editTodoRemindAt ? new Date(editTodoRemindAt).toISOString() : undefined,
       estimatedMinutes: editTodoEstimateMinutes ? Math.max(5, Number(editTodoEstimateMinutes)) : undefined,
       importance: editTodoImportance ? Math.max(1, Math.min(5, Number(editTodoImportance))) : undefined,
+      priorityAdjustment: editTodoPriorityAdjustment ? Math.max(-100, Math.min(100, Number(editTodoPriorityAdjustment))) : 0,
     });
     cancelEditTodo();
+  };
+
+  const formatAdjustment = (value?: number) => {
+    const safe = typeof value === 'number' && Number.isFinite(value) ? Math.round(value) : 0;
+    if (safe > 0) return `+${safe}`;
+    return String(safe);
   };
 
   const priorityStyle = (label: 'high' | 'medium' | 'low') => {
@@ -305,6 +315,16 @@ export function TodoPanel({ variant = 'sidebar' }: { variant?: 'sidebar' | 'over
                         placeholder={t('Importance 1-5', '重要程度 1-5')}
                         className={isOverlay ? 'border-slate-200/70 bg-white/90 text-slate-700 placeholder:text-slate-400' : 'bg-input-background border-border/50 text-foreground placeholder:text-muted-foreground'}
                       />
+                      <Input
+                        type="number"
+                        min={-100}
+                        max={100}
+                        step={1}
+                        value={editTodoPriorityAdjustment}
+                        onChange={(e) => setEditTodoPriorityAdjustment(e.target.value)}
+                        placeholder={t('Priority adjustment', '优先级修正')}
+                        className={isOverlay ? 'border-slate-200/70 bg-white/90 text-slate-700 placeholder:text-slate-400' : 'bg-input-background border-border/50 text-foreground placeholder:text-muted-foreground'}
+                      />
                     </div>
                     <div className="flex gap-2 pt-1">
                       <Button
@@ -338,6 +358,11 @@ export function TodoPanel({ variant = 'sidebar' }: { variant?: 'sidebar' | 'over
                         >
                           {priorityLabelText(todo.priorityLabel)} · {todo.priorityScore}
                         </span>
+                      </div>
+                      <div className={`mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] ${isOverlay ? 'text-slate-600' : 'text-muted-foreground'}`}>
+                        <span>{t('Auto', '系统')} {todo.autoPriorityScore ?? todo.priorityScore}</span>
+                        <span>{t('Manual', '手动')} {formatAdjustment(todo.priorityAdjustment)}</span>
+                        <span>{t('Final', '最终')} {todo.priorityScore}</span>
                       </div>
                       <p
                         className={`text-sm ${
@@ -379,6 +404,49 @@ export function TodoPanel({ variant = 'sidebar' }: { variant?: 'sidebar' | 'over
                           {todo.priorityReason}
                         </div>
                       )}
+                      <div className={`mt-3 rounded-2xl border px-3 py-3 ${isOverlay ? 'border-slate-200 bg-slate-50/90' : 'border-border/50 bg-background/20'}`}>
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <p className={`text-[12px] font-semibold ${isOverlay ? 'text-slate-700' : 'text-foreground'}`}>
+                              {t('Priority tuning', '优先级微调')}
+                            </p>
+                            <p className={`mt-1 text-[11px] leading-5 ${isOverlay ? 'text-slate-500' : 'text-muted-foreground'}`}>
+                              {t(
+                                'The system keeps recalculating urgency. Your manual tweak stays on top of it.',
+                                '系统会继续自动重算紧急程度；你的手动修正会叠加在上面。',
+                              )}
+                            </p>
+                          </div>
+                          <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${isOverlay ? 'bg-white text-slate-700 shadow-sm' : 'bg-muted text-foreground'}`}>
+                            {formatAdjustment(todo.priorityAdjustment)}
+                          </span>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {[-10, -5, 0, 5, 10].map((delta) => {
+                            const nextAdjustment = delta === 0 ? 0 : (todo.priorityAdjustment || 0) + delta;
+                            const label =
+                              delta === 0
+                                ? t('Reset', '重置')
+                                : delta > 0
+                                  ? `+${delta}`
+                                  : `${delta}`;
+                            return (
+                              <button
+                                key={delta}
+                                type="button"
+                                onClick={() => setTodoPriorityAdjustment(todo.id, nextAdjustment)}
+                                className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors ${
+                                  isOverlay
+                                    ? 'border-slate-300 bg-white text-slate-700 hover:border-[#6b98a2] hover:bg-[#eef5f7]'
+                                    : 'border-border/60 bg-background/20 text-foreground hover:bg-background/40'
+                                }`}
+                              >
+                                {label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
                       <div className="mt-3 flex items-center gap-2">
                         <span className={`text-[12px] font-medium ${isOverlay ? 'text-slate-700' : 'text-muted-foreground'}`}>{t('Importance:', '重要程度：')}</span>
                         {[1, 2, 3, 4, 5].map((level) => (

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import backgroundImage from '../../assets/background-new.png';
+import backgroundImage from '../../assets/background-new.webp';
 import seaOtterImage from '../../assets/sea-otter.png';
 
 type AuthMode = 'login' | 'register';

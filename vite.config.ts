@@ -20,8 +20,29 @@ export default defineConfig({
     },
   },
   server: {
+    port: 5174,
+    strictPort: true,
     proxy: {
       '/api': 'http://localhost:8787',
+    },
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined
+          if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/react-router/')) {
+            return 'react-vendor'
+          }
+          if (id.includes('/motion/')) {
+            return 'motion-vendor'
+          }
+          if (id.includes('/lucide-react/') || id.includes('/sonner/')) {
+            return 'ui-vendor'
+          }
+          return undefined
+        },
+      },
     },
   },
 

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import backgroundImage from '../../assets/background-new.png';
+import backgroundImage from '../../assets/background-new.webp';
 
 export function SceneShell({ children }: { children: ReactNode }) {
   return (

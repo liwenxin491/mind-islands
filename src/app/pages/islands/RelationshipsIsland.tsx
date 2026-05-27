@@ -53,7 +53,7 @@ export function RelationshipsIsland() {
       id: 'other',
       name: 'Other',
       icon: '✨',
-      color: '#a855f7',
+      color: '#8bb3bc',
       description: 'Other meaningful connections',
     },
   ];
