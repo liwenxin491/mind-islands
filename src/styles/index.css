@@ -255,22 +255,26 @@ body {
   }
 }
 
-.harbor-surface {
+.harbor-surface,
+.inspiration-surface {
   border: 1px solid rgba(255, 255, 255, 0.42);
   background: rgba(244, 249, 250, 0.94);
   box-shadow: 0 12px 32px rgba(10, 42, 52, 0.09);
   backdrop-filter: blur(18px);
 }
 
-.harbor-screen .text-foreground {
+.harbor-screen .text-foreground,
+.inspiration-screen .text-foreground {
   color: #1f3440;
 }
 
-.harbor-screen .text-muted-foreground {
+.harbor-screen .text-muted-foreground,
+.inspiration-screen .text-muted-foreground {
   color: #526a73;
 }
 
-.harbor-screen .bg-white\/5 {
+.harbor-screen .bg-white\/5,
+.inspiration-screen .bg-white\/5 {
   background: rgba(255, 255, 255, 0.55);
 }
 
