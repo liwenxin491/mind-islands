@@ -76,8 +76,10 @@ GEMINI_MODEL=gemini-2.5-flash
 PORT=8787
 NODE_ENV=production
 COOKIE_SECURE=false
+APP_ORIGIN=http://<YOUR_EC2_PUBLIC_DNS>
 DATABASE_URL=postgresql://<db_user>:<db_password>@<rds_endpoint>:5432/<db_name>
 JWT_SECRET=<long_random_secret_32+chars>
+DATA_ENCRYPTION_KEY=<different_long_random_secret_32+chars>
 SMTP_HOST=<smtp_host>
 SMTP_PORT=587
 SMTP_SECURE=false
@@ -86,7 +88,7 @@ SMTP_PASS=<smtp_password>
 EMAIL_FROM=Mind Islands <no-reply@your-domain.com>
 ```
 
-When HTTPS is enabled, change `COOKIE_SECURE=true`.
+When HTTPS is enabled, change `COOKIE_SECURE=true` and set `APP_ORIGIN=https://yourdomain.com`.
 
 Then install + build:
 
@@ -114,6 +116,9 @@ curl http://127.0.0.1:8787/api/health
 You should see:
 - `hasDb: true`
 - `hasJwtSecret: true`
+- `hasDataEncryptionKey: true`
+- `hasEmailConfig: true`
+- `hasAppOrigin: true`
 
 ## 6) Configure Nginx
 

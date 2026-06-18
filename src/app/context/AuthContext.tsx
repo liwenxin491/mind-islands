@@ -4,6 +4,7 @@ export interface AuthUser {
   id: string;
   username: string;
   email: string;
+  emailVerifiedAt?: string | null;
   createdAt?: string;
 }
 
@@ -12,7 +13,18 @@ interface AuthContextValue {
   loading: boolean;
   setupError: string | null;
   login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
-  register: (username: string, email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  register: (
+    username: string,
+    email: string,
+    password: string,
+    verificationCode: string,
+  ) => Promise<{ ok: boolean; error?: string }>;
+  sendVerificationCode: (username: string, email: string) => Promise<{
+    ok: boolean;
+    error?: string;
+    devCode?: string;
+    retryAfterSec?: number;
+  }>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -34,6 +46,14 @@ const parseErrorMessage = (errorCode = 'unknown_error') => {
     user_already_exists: 'This email or username is already registered.',
     email_already_registered: 'This email is already registered.',
     invalid_credentials: 'Email or password is incorrect.',
+    invalid_verification_code: 'Verification code is incorrect.',
+    verification_code_required: 'Please request an email verification code first.',
+    verification_code_expired: 'Verification code expired. Please request a new one.',
+    verification_code_locked: 'Too many incorrect verification attempts. Please request a new code.',
+    verification_code_too_frequent: 'Please wait before requesting another code.',
+    email_not_verified: 'Please verify your email before signing in.',
+    email_service_not_configured: 'Email verification service is not configured yet.',
+    rate_limited: 'Too many attempts. Please wait and try again.',
     database_not_configured: 'Server database is not configured yet.',
     jwt_secret_not_configured: 'Server auth secret is missing.',
     missing_credentials: 'Please enter both email and password.',
@@ -120,7 +140,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const register = async (username: string, email: string, password: string) => {
+  const sendVerificationCode = async (username: string, email: string) => {
+    if (OFFLINE_MODE) return { ok: true };
+
+    try {
+      const response = await fetch('/api/auth/send-verification-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        return {
+          ok: false,
+          error: parseErrorMessage(payload?.error),
+          retryAfterSec: payload?.retryAfterSec,
+        };
+      }
+      return {
+        ok: true,
+        devCode: payload?.devCode,
+        retryAfterSec: payload?.retryAfterSec,
+      };
+    } catch {
+      return { ok: false, error: 'Cannot connect to server.' };
+    }
+  };
+
+  const register = async (username: string, email: string, password: string, verificationCode: string) => {
     if (OFFLINE_MODE) {
       setUser({
         ...OFFLINE_USER,
@@ -135,7 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password }),
+        body: JSON.stringify({ username, email, password, verificationCode }),
       });
       const payload = await response.json();
       if (!response.ok) {
@@ -172,6 +219,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setupError,
       login,
       register,
+      sendVerificationCode,
       logout,
       refresh,
     }),

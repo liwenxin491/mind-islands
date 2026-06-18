@@ -33,6 +33,13 @@ export const router = createBrowserRouter([
         },
       },
       {
+        path: '/profile',
+        lazy: async () => {
+          const { Profile } = await import('./pages/Profile');
+          return { Component: Profile };
+        },
+      },
+      {
         path: '/island/body',
         loader: () => redirect('/memories?filter=body'),
       },

@@ -46,6 +46,14 @@ GEMINI_API_KEY=...
 GEMINI_MODEL=gemini-2.5-flash
 DATABASE_URL=postgresql://<db_user>:<db_password>@<rds_endpoint>:5432/<db_name>
 JWT_SECRET=<long_random_secret_32+chars>
+DATA_ENCRYPTION_KEY=<different_long_random_secret_32+chars>
+APP_ORIGIN=https://yourdomain.com
+SMTP_HOST=<smtp_host>
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=<smtp_username>
+SMTP_PASS=<smtp_password>
+EMAIL_FROM=Mind Islands <no-reply@your-domain.com>
 ```
 
 ## 5) Runtime checks
@@ -60,6 +68,9 @@ curl http://127.0.0.1:8787/api/ready
 Expected:
 - `hasDb: true`
 - `hasJwtSecret: true`
+- `hasDataEncryptionKey: true`
+- `hasEmailConfig: true`
+- `hasAppOrigin: true`
 - `hasKey: true`
 - `dbReachable: true`
 - `/api/ready` returns `{"ok":true}`
@@ -73,4 +84,3 @@ Please send:
 4. RDS endpoint + DB name + DB username
 5. Whether you want to paste DB password yourself (recommended) or provide it
 6. Your domain name (optional, for HTTPS cert)
-

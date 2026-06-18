@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Check, Send, Sparkles, Trash2 } from 'lucide-react';
+import { Check, Heart, Send, Sparkles, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router';
 import { useMindIslands } from '../context/MindIslandsContext';
 import { useLanguage } from '../context/LanguageContext';
 import { formatDate24, formatTime24, getNowInAppTimeZoneISO } from '../lib/time';
@@ -15,6 +16,15 @@ interface PendingFollowup {
 
 interface PendingDraft {
   insight: AIInsightPayload;
+  sourceMessage: string;
+}
+
+interface PendingSupportHandoff {
+  destination: 'harbor';
+  level: 'support' | 'elevated' | 'dangerous_request' | 'crisis';
+  title: string;
+  message: string;
+  ctaLabel: string;
   sourceMessage: string;
 }
 
@@ -117,8 +127,9 @@ export function AIChat({
   initialMessage?: string;
   autoSendInitialMessage?: boolean;
 }) {
-  const { progress, addChatMessage, applyAIInsights } = useMindIslands();
+  const { progress, addChatMessage, applyAIInsights, createMemoryEvent } = useMindIslands();
   const { language, t } = useLanguage();
+  const navigate = useNavigate();
   const isOverlay = variant === 'overlay';
   const islandNameMap: Record<IslandType, string> = {
     body: t('Body & Health', '健康与运动'),
@@ -132,6 +143,7 @@ export function AIChat({
   const [isTyping, setIsTyping] = useState(false);
   const [pendingFollowup, setPendingFollowup] = useState<PendingFollowup | null>(null);
   const [pendingDraft, setPendingDraft] = useState<PendingDraft | null>(null);
+  const [pendingSupportHandoff, setPendingSupportHandoff] = useState<PendingSupportHandoff | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const submittedInitialMessageRef = useRef(false);
 
@@ -139,7 +151,7 @@ export function AIChat({
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [progress.chatHistory.length, isTyping, pendingFollowup, pendingDraft]);
+  }, [progress.chatHistory.length, isTyping, pendingFollowup, pendingDraft, pendingSupportHandoff]);
 
   const appendAssistantMessage = (content: string) => {
     addChatMessage({
@@ -148,44 +160,87 @@ export function AIChat({
     });
   };
 
-  const handleConfirmDraft = () => {
+  const handleConfirmDraft = async () => {
     if (!pendingDraft) return;
 
-    const applied = applyAIInsights(pendingDraft.insight, pendingDraft.sourceMessage);
-    const parts: string[] = [];
-    if (applied.islands.length > 0) {
-      parts.push(
-        t(
-          `Archived to: ${applied.islands.join(' / ')}`,
-          `已归档到：${applied.islands.join(' / ')}`,
-        ),
-      );
-    }
-    if (applied.todosAdded > 0) {
-      parts.push(
-        t(
-          `Added ${applied.todosAdded} to-do item(s)`,
-          `已添加 ${applied.todosAdded} 条待办`,
-        ),
-      );
-    }
-    if (applied.memoriesAdded > 0) {
-      parts.push(t('Saved to Memories', '已保存到记忆'));
-    }
+    try {
+      let memoriesAdded = 0;
+      if (pendingDraft.insight.memory?.content?.trim()) {
+        const draft = pendingDraft.insight.memory;
+        const savedMemory = await createMemoryEvent({
+          source: 'ai',
+          title: draft.title,
+          content: draft.content,
+          tags: draft.tags || [],
+          islands: pendingDraft.insight.detectedIslands || [],
+          template: draft.template || 'general',
+          fields: draft.fields,
+          pinned: false,
+          sensitivityLevel: 'normal',
+          sourceMessage: pendingDraft.sourceMessage,
+          profileSignals: pendingDraft.insight.profileSignals || [],
+        });
+        memoriesAdded = savedMemory ? 1 : 0;
+      }
 
-    appendAssistantMessage(
-      parts.length > 0
-        ? `${t('Confirmed.', '已确认。')} ${parts.join('; ')}.`
-        : t('Confirmed. Archived.', '已确认并归档。'),
-    );
-    setPendingDraft(null);
-    setPendingFollowup(null);
+      const applied = applyAIInsights(
+        pendingDraft.insight.memory
+          ? { ...pendingDraft.insight, memory: undefined }
+          : pendingDraft.insight,
+        pendingDraft.sourceMessage,
+      );
+      const parts: string[] = [];
+      if (applied.islands.length > 0) {
+        parts.push(
+          t(
+            `Archived to: ${applied.islands.join(' / ')}`,
+            `已归档到：${applied.islands.join(' / ')}`,
+          ),
+        );
+      }
+      if (applied.todosAdded > 0) {
+        parts.push(
+          t(
+            `Added ${applied.todosAdded} to-do item(s)`,
+            `已添加 ${applied.todosAdded} 条待办`,
+          ),
+        );
+      }
+      if (memoriesAdded + applied.memoriesAdded > 0) {
+        parts.push(t('Saved to Memories', '已保存到记忆'));
+      }
+
+      appendAssistantMessage(
+        parts.length > 0
+          ? `${t('Confirmed.', '已确认。')} ${parts.join('; ')}.`
+          : t('Confirmed. Archived.', '已确认并归档。'),
+      );
+      setPendingDraft(null);
+      setPendingFollowup(null);
+    } catch (error) {
+      appendAssistantMessage(t('I could not save that memory just now. Please try confirming again.', '刚刚没能保存这条记忆，请再确认一次。'));
+      // eslint-disable-next-line no-console
+      console.error('[AIChat] confirm draft failed:', error);
+    }
   };
 
   const handleDiscardDraft = () => {
     setPendingDraft(null);
     setPendingFollowup(null);
     appendAssistantMessage(t('Draft discarded. Share a new update whenever you want.', '草稿已丢弃。你可以随时重新输入新的记录。'));
+  };
+
+  const openHarborFromHandoff = () => {
+    if (!pendingSupportHandoff) return;
+    navigate('/island/compassion', {
+      state: {
+        quickLogHandoff: {
+          message: pendingSupportHandoff.sourceMessage,
+          level: pendingSupportHandoff.level,
+          createdAt: getNowInAppTimeZoneISO(),
+        },
+      },
+    });
   };
 
   const handleSend = async (messageOverride?: string) => {
@@ -227,7 +282,19 @@ export function AIChat({
         Boolean(result.memory && hasMeaningfulEntry(result.memory)) ||
         Object.values(result.entries || {}).some((entry) => hasMeaningfulEntry(entry));
 
+      if (result.supportHandoff?.destination === 'harbor') {
+        setPendingSupportHandoff({
+          ...result.supportHandoff,
+          sourceMessage,
+        });
+        setPendingDraft(null);
+        setPendingFollowup(null);
+        appendAssistantMessage(result.assistantReply);
+        return;
+      }
+
       if (result.needsFollowup) {
+        setPendingSupportHandoff(null);
         const followup =
           result.followupQuestion ||
           t(
@@ -243,6 +310,7 @@ export function AIChat({
       }
 
       if (!hasEntryDraft && todoCount === 0) {
+        setPendingSupportHandoff(null);
         appendAssistantMessage(
           `${result.assistantReply}\n\n${t(
             'I did not get a structured draft yet. Please include at least one concrete task or log detail.',
@@ -254,6 +322,7 @@ export function AIChat({
       }
 
       if (todoCount > 0 && !hasEntryDraft && shouldDirectArchiveTodo(userInput)) {
+        setPendingSupportHandoff(null);
         const applied = applyAIInsights(result, sourceMessage);
         appendAssistantMessage(
           t(
@@ -267,6 +336,7 @@ export function AIChat({
       }
 
       setPendingFollowup(null);
+      setPendingSupportHandoff(null);
       setPendingDraft({
         insight: result,
         sourceMessage,
@@ -348,6 +418,50 @@ export function AIChat({
               <p className="text-sm">{t('Tell me what you did today, and I will draft a log first.', '告诉我你今天做了什么，我会先帮你生成记录草稿。')}</p>
               <p className="mt-2 text-xs">{t('Example: Leg workout for 40 minutes tonight.', '示例：今晚练腿 40 分钟。')}</p>
             </motion.div>
+          )}
+
+          {pendingSupportHandoff && (
+            <div
+              className={`rounded-2xl border p-3 ${
+                isOverlay
+                  ? 'border-[#6b98a2]/25 bg-[rgba(255,255,255,0.72)] text-slate-800'
+                  : 'border-primary/30 bg-primary/10 text-foreground'
+              }`}
+            >
+              <div className="flex gap-3">
+                <div
+                  className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                    isOverlay ? 'bg-[#dcebee] text-[#5f8f98]' : 'bg-primary/20 text-primary'
+                  }`}
+                >
+                  <Heart className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold">{pendingSupportHandoff.title}</p>
+                  <p className={`mt-1 text-xs leading-relaxed ${isOverlay ? 'text-slate-600' : 'text-muted-foreground'}`}>
+                    {pendingSupportHandoff.message}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      className={isOverlay ? 'bg-[#6b98a2] text-white hover:bg-[#5a8791]' : 'bg-primary text-primary-foreground hover:bg-primary/80'}
+                      onClick={openHarborFromHandoff}
+                    >
+                      <Heart className="mr-1 h-4 w-4" />
+                      {pendingSupportHandoff.ctaLabel}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className={isOverlay ? 'border-slate-300/70 bg-white/65 text-slate-600 hover:bg-white' : ''}
+                      onClick={() => setPendingSupportHandoff(null)}
+                    >
+                      {t('Not now', '暂时不用')}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
 
           {pendingFollowup && (

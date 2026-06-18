@@ -6,6 +6,7 @@ import {
   Lightbulb,
   Mountain,
   Plus,
+  Brain,
   Tag,
   TrendingUp,
   Users,
@@ -18,9 +19,9 @@ import { SceneShell } from '../components/SceneShell';
 import { useLanguage } from '../context/LanguageContext';
 import { useMindIslands } from '../context/MindIslandsContext';
 import { getDateKey } from '../lib/time';
-import type { MemoryEntry, MemoryTemplate } from '../types';
+import type { MemoryEntry, MemoryEvent, MemoryTemplate } from '../types';
 
-type TimelineItem = MemoryEntry & { legacy?: boolean };
+type TimelineItem = MemoryEntry & { legacy?: boolean; cloudEvent?: MemoryEvent };
 type FilterId = 'body' | 'progress' | 'connection' | string;
 
 const systemThemeLabels: Record<string, { en: string; zh: string }> = {
@@ -44,12 +45,23 @@ const cleanTags = (text: string) => {
 };
 
 export function Memories() {
-  const { progress, addMemoryEntry, updateMemoryEntry, togglePinnedMemoryTheme } = useMindIslands();
+  const {
+    progress,
+    memoryEvents,
+    memoryCloudLoaded,
+    createMemoryEvent,
+    updateMemoryEvent,
+    deleteMemoryEvent,
+    togglePinnedMemoryEvent,
+    updateMemoryEntry,
+    deleteMemoryEntry,
+    togglePinnedMemoryTheme,
+  } = useMindIslands();
   const { t, language } = useLanguage();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [captureOpen, setCaptureOpen] = useState(false);
-  const [editingEntry, setEditingEntry] = useState<MemoryEntry | null>(null);
+  const [editingEntry, setEditingEntry] = useState<TimelineItem | null>(null);
   const view = params.get('view') === 'insights' ? 'insights' : 'timeline';
   const filter = params.get('filter') || '';
   const activeTodos = progress.todos.filter((todo) => !todo.completed).length;
@@ -131,10 +143,25 @@ export function Memories() {
         legacy: true,
       })),
     ];
-    return [...progress.memoryEntries, ...legacy]
+    const cloudEntries: TimelineItem[] = memoryEvents.map((event) => ({
+      id: event.id,
+      date: event.createdAt.slice(0, 10),
+      createdAt: event.createdAt,
+      title: event.title,
+      content: event.content,
+      tags: event.tags,
+      source: event.source,
+      template: event.template,
+      fields: event.fields,
+      cloudEvent: event,
+    }));
+    const manualEntries: TimelineItem[] = memoryCloudLoaded && memoryEvents.length > 0 ? [] : progress.memoryEntries;
+    return [...cloudEntries, ...manualEntries, ...legacy]
       .filter((item) => item.content.trim() || item.title.trim())
       .sort((a, b) => (b.createdAt || b.date).localeCompare(a.createdAt || a.date));
   }, [
+    memoryEvents,
+    memoryCloudLoaded,
     progress.memoryEntries,
     progress.healthCheckIns,
     progress.workDailyLogs,
@@ -184,14 +211,24 @@ export function Memories() {
               <h1 className="text-3xl font-semibold">{t('Memories', '记忆')}</h1>
               <p className="mt-1 text-sm text-slate-600">{t('What I chose to keep and revisit', '我选择留下、值得回看的内容')}</p>
             </div>
-            <button
-              type="button"
-              onClick={() => setCaptureOpen(true)}
-              className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#6b98a2] px-4 py-2.5 text-sm font-semibold text-white shadow-sm"
-            >
-              <Plus className="h-4 w-4" />
-              {t('Add', '添加')}
-            </button>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={() => navigate('/profile')}
+                aria-label={t('Open memory profile', '打开记忆画像')}
+                className="rounded-full bg-white/70 p-2.5 text-[#557f89] shadow-sm"
+              >
+                <Brain className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setCaptureOpen(true)}
+                className="flex items-center gap-1.5 rounded-full bg-[#6b98a2] px-4 py-2.5 text-sm font-semibold text-white shadow-sm"
+              >
+                <Plus className="h-4 w-4" />
+                {t('Add', '添加')}
+              </button>
+            </div>
           </div>
           <div className="mt-5 grid grid-cols-2 rounded-full bg-white/55 p-1">
             {(['timeline', 'insights'] as const).map((item) => (
@@ -265,12 +302,26 @@ export function Memories() {
                         </div>
                         <div className="flex items-center gap-2">
                           {!entry.legacy && (
-                            <button type="button" onClick={() => setEditingEntry(entry)} className="text-xs font-medium text-[#557f89]">
-                              {t('Edit', '编辑')}
-                            </button>
+                            <>
+                              <button type="button" onClick={() => setEditingEntry(entry)} className="text-xs font-medium text-[#557f89]">
+                                {t('Edit', '编辑')}
+                              </button>
+                              {entry.cloudEvent && (
+                                <button type="button" onClick={() => togglePinnedMemoryEvent(entry.cloudEvent!.id)} className="text-xs font-medium text-[#557f89]">
+                                  {entry.cloudEvent.pinned ? t('Unpin', '取消固定') : t('Pin', '固定')}
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => entry.cloudEvent ? deleteMemoryEvent(entry.cloudEvent.id) : deleteMemoryEntry(entry.id)}
+                                className="text-xs font-medium text-rose-500"
+                              >
+                                {t('Delete', '删除')}
+                              </button>
+                            </>
                           )}
                           <span className="rounded-full bg-[#deebee] px-2.5 py-1 text-[11px] text-[#517b84]">
-                            {entry.source === 'inspiration' ? t('Inspiration', '灵感') : entry.source === 'harbor-saved' ? t('Saved', '主动保存') : t('Memory', '记忆')}
+                            {entry.cloudEvent?.pinned ? t('Pinned', '已固定') : entry.source === 'inspiration' ? t('Inspiration', '灵感') : entry.source === 'harbor-saved' ? t('Saved', '主动保存') : t('Memory', '记忆')}
                           </span>
                         </div>
                       </div>
@@ -321,9 +372,34 @@ export function Memories() {
               setCaptureOpen(false);
               setEditingEntry(null);
             }}
-            onSave={(entry) => {
-              if (editingEntry) updateMemoryEntry(editingEntry.id, entry);
-              else addMemoryEntry(entry);
+            onSave={async (entry) => {
+              if (editingEntry?.cloudEvent) {
+                await updateMemoryEvent(editingEntry.cloudEvent.id, {
+                  source: entry.source,
+                  title: entry.title,
+                  content: entry.content,
+                  tags: entry.tags,
+                  islands: editingEntry.cloudEvent.islands,
+                  template: entry.template || 'general',
+                  fields: entry.fields,
+                  pinned: editingEntry.cloudEvent.pinned,
+                  sensitivityLevel: editingEntry.cloudEvent.sensitivityLevel,
+                });
+              } else if (editingEntry) {
+                updateMemoryEntry(editingEntry.id, entry);
+              } else {
+                await createMemoryEvent({
+                  source: entry.source,
+                  title: entry.title,
+                  content: entry.content,
+                  tags: entry.tags,
+                  islands: [],
+                  template: entry.template || 'general',
+                  fields: entry.fields,
+                  pinned: false,
+                  sensitivityLevel: 'normal',
+                });
+              }
               setCaptureOpen(false);
               setEditingEntry(null);
             }}

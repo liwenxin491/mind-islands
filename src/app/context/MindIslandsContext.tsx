@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import type {
   AIInsightPayload,
   BreathingSession,
@@ -11,11 +11,16 @@ import type {
   IslandType,
   LearningDailyLog,
   LearningGoal,
+  MemoryEvent,
   MemoryEntry,
+  MemorySettings,
+  ProfileSignal,
   QuickPromptCheckIn,
   RelationshipLog,
   RoutineSettings,
   TodoItem,
+  UserProfileFact,
+  UserProfileSummary,
   UserProgress,
   WorkDailyLog,
   WorkGoal,
@@ -27,6 +32,11 @@ import { useAuth } from './AuthContext';
 
 interface MindIslandsContextType {
   progress: UserProgress;
+  memoryEvents: MemoryEvent[];
+  memorySettings: MemorySettings;
+  profileFacts: UserProfileFact[];
+  profileSummary: UserProfileSummary | null;
+  memoryCloudLoaded: boolean;
 
   // Character
   updateCharacterMood: (mood: CharacterMood) => void;
@@ -95,6 +105,22 @@ interface MindIslandsContextType {
   updateMemoryEntry: (id: string, updates: Partial<Omit<MemoryEntry, 'id'>>) => void;
   deleteMemoryEntry: (id: string) => void;
   togglePinnedMemoryTheme: (tag: string) => void;
+  createMemoryEvent: (
+    memory: Omit<MemoryEvent, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'> & {
+      profileSignals?: ProfileSignal[];
+    },
+  ) => Promise<MemoryEvent | null>;
+  updateMemoryEvent: (
+    id: string,
+    updates: Partial<Omit<MemoryEvent, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>> & {
+      profileSignals?: ProfileSignal[];
+    },
+  ) => Promise<MemoryEvent | null>;
+  deleteMemoryEvent: (id: string) => Promise<void>;
+  togglePinnedMemoryEvent: (id: string) => Promise<void>;
+  updateMemorySettings: (updates: Partial<MemorySettings>) => Promise<void>;
+  deleteProfileFact: (id: string) => Promise<void>;
+  refreshMemoryState: () => Promise<void>;
 
   // AI structured logging
   applyAIInsights: (
@@ -104,7 +130,7 @@ interface MindIslandsContextType {
 
   // General
   addTodo: (
-    todo: Omit<TodoItem, 'id' | 'autoPriorityScore' | 'priorityScore' | 'priorityLabel' | 'priorityReason'>,
+    todo: TodoInput,
   ) => void;
   updateTodo: (
     todoId: string,
@@ -112,12 +138,25 @@ interface MindIslandsContextType {
   ) => void;
   setTodoImportance: (todoId: string, importance: number) => void;
   setTodoPriorityAdjustment: (todoId: string, adjustment: number) => void;
+  setTodoPriorityScore: (todoId: string, targetScore: number) => void;
   toggleTodo: (todoId: string) => void;
   deleteTodo: (todoId: string) => void;
   cleanupCompletedTodos: (olderThanDays: number) => number;
 }
 
 const MindIslandsContext = createContext<MindIslandsContextType | undefined>(undefined);
+
+type TodoPriorityPreset = 'low' | 'medium' | 'high';
+
+type TodoInput = Omit<TodoItem, 'id' | 'autoPriorityScore' | 'priorityScore' | 'priorityLabel' | 'priorityReason'> & {
+  manualPriorityPreset?: TodoPriorityPreset;
+};
+
+const TODO_PRIORITY_PRESET_TARGETS: Record<TodoPriorityPreset, number> = {
+  low: 25,
+  medium: 55,
+  high: 80,
+};
 
 const getTodayISO = () => getDateKey();
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
@@ -677,6 +716,39 @@ const defaultProgress: UserProgress = {
   pinnedMemoryThemes: [],
 };
 
+const defaultMemorySettings: MemorySettings = {
+  saveMemoriesEnabled: true,
+  profileLearningEnabled: true,
+  aiPersonalizationEnabled: true,
+  harborMemoryEnabled: true,
+};
+
+const emptyProfileSummary: UserProfileSummary = {
+  knownStressors: [],
+  goals: [],
+  routines: [],
+  helpfulSupportStyle: [],
+  copingStrategies: [],
+  relationshipThemes: [],
+  tonePreferences: [],
+  identityContext: [],
+  interests: [],
+  pinnedMemories: [],
+  recentMilestones: [],
+};
+
+const memoryEventToEntry = (event: MemoryEvent): MemoryEntry => ({
+  id: event.id,
+  date: event.createdAt.slice(0, 10),
+  createdAt: event.createdAt,
+  title: event.title,
+  content: event.content,
+  tags: event.tags,
+  source: event.source,
+  template: event.template,
+  fields: event.fields,
+});
+
 const mergeRoutineSettings = (parsedRoutine: any): RoutineSettings => {
   const defaults = createDefaultRoutineSettings();
   if (!parsedRoutine) return defaults;
@@ -880,7 +952,65 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [progress, setProgress] = useState<UserProgress>(defaultProgress);
   const [cloudLoaded, setCloudLoaded] = useState(false);
+  const [memoryEvents, setMemoryEvents] = useState<MemoryEvent[]>([]);
+  const [memorySettings, setMemorySettings] = useState<MemorySettings>(defaultMemorySettings);
+  const [profileFacts, setProfileFacts] = useState<UserProfileFact[]>([]);
+  const [profileSummary, setProfileSummary] = useState<UserProfileSummary | null>(emptyProfileSummary);
+  const [memoryCloudLoaded, setMemoryCloudLoaded] = useState(false);
   const lastSyncedJsonRef = useRef('');
+
+  const refreshMemoryState = useCallback(async () => {
+    if (OFFLINE_MODE || !user) {
+      setMemoryEvents([]);
+      setMemorySettings(defaultMemorySettings);
+      setProfileFacts([]);
+      setProfileSummary(emptyProfileSummary);
+      setMemoryCloudLoaded(true);
+      return;
+    }
+
+    try {
+      const [memoriesResponse, profileResponse] = await Promise.all([
+        fetch('/api/memories'),
+        fetch('/api/profile'),
+      ]);
+      if (memoriesResponse.ok) {
+        const payload = await memoriesResponse.json();
+        setMemoryEvents(Array.isArray(payload.memories) ? payload.memories : []);
+      }
+      if (profileResponse.ok) {
+        const payload = await profileResponse.json();
+        setMemorySettings(payload.settings || defaultMemorySettings);
+        setProfileFacts(Array.isArray(payload.facts) ? payload.facts : []);
+        setProfileSummary(payload.summary || emptyProfileSummary);
+      }
+    } catch {
+      // Keep local state. The JSONB app state still syncs separately.
+    } finally {
+      setMemoryCloudLoaded(true);
+    }
+  }, [user]);
+
+  const postMemoryToCloud = useCallback(
+    async (
+      memory: Omit<MemoryEvent, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'> & {
+        profileSignals?: ProfileSignal[];
+      },
+    ) => {
+      const response = await fetch('/api/memories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(memory),
+      });
+      if (!response.ok) {
+        const details = await response.text();
+        throw new Error(details || 'create memory failed');
+      }
+      const payload = await response.json();
+      return payload.memory as MemoryEvent;
+    },
+    [],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -910,6 +1040,11 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
       if (!user) {
         setProgress(defaultProgress);
         setCloudLoaded(false);
+        setMemoryEvents([]);
+        setProfileFacts([]);
+        setProfileSummary(emptyProfileSummary);
+        setMemorySettings(defaultMemorySettings);
+        setMemoryCloudLoaded(false);
         lastSyncedJsonRef.current = '';
         return;
       }
@@ -955,6 +1090,47 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, [user]);
+
+  useEffect(() => {
+    setMemoryCloudLoaded(false);
+    void refreshMemoryState();
+  }, [refreshMemoryState]);
+
+  useEffect(() => {
+    if (OFFLINE_MODE || !user || !cloudLoaded || !memoryCloudLoaded) return;
+    const legacyEntries = progress.memoryEntries.filter((entry) => entry.content.trim());
+    if (legacyEntries.length === 0) return;
+
+    let cancelled = false;
+    const migrate = async () => {
+      for (const entry of legacyEntries) {
+        if (cancelled) return;
+        const legacyKey = `memory-entry:${entry.id}`;
+        if (memoryEvents.some((event) => event.legacyKey === legacyKey)) continue;
+        try {
+          await postMemoryToCloud({
+            source: entry.source,
+            title: entry.title,
+            content: entry.content,
+            tags: entry.tags,
+            islands: [],
+            template: entry.template || 'general',
+            fields: entry.fields,
+            pinned: false,
+            sensitivityLevel: 'normal',
+            legacyKey,
+          });
+        } catch {
+          // Try again on the next load if the migration could not complete.
+        }
+      }
+      if (!cancelled) await refreshMemoryState();
+    };
+    void migrate();
+    return () => {
+      cancelled = true;
+    };
+  }, [cloudLoaded, memoryCloudLoaded, memoryEvents, postMemoryToCloud, progress.memoryEntries, refreshMemoryState, user]);
 
   useEffect(() => {
     const nextZone = progress.routineSettings?.timeZone || getAppTimeZone();
@@ -1552,6 +1728,153 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const createMemoryEvent = async (
+    memory: Omit<MemoryEvent, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'> & {
+      profileSignals?: ProfileSignal[];
+    },
+  ): Promise<MemoryEvent | null> => {
+    if (!memorySettings.saveMemoriesEnabled) return null;
+
+    if (OFFLINE_MODE || !user) {
+      const entry = addMemoryEntry({
+        date: getTodayISO(),
+        title: memory.title,
+        content: memory.content,
+        tags: memory.tags,
+        source: memory.source,
+        template: memory.template,
+        fields: memory.fields,
+      });
+      const now = entry.createdAt;
+      const event: MemoryEvent = {
+        id: entry.id,
+        source: entry.source,
+        title: entry.title,
+        content: entry.content,
+        tags: entry.tags,
+        islands: memory.islands || [],
+        template: entry.template || 'general',
+        fields: entry.fields,
+        pinned: Boolean(memory.pinned),
+        sensitivityLevel: memory.sensitivityLevel || 'normal',
+        sourceMessage: memory.sourceMessage,
+        legacyKey: memory.legacyKey,
+        createdAt: now,
+        updatedAt: now,
+      };
+      setMemoryEvents((prev) => [event, ...prev]);
+      return event;
+    }
+
+    const event = await postMemoryToCloud(memory);
+    setMemoryEvents((prev) => [event, ...prev.filter((item) => item.id !== event.id)]);
+    await refreshMemoryState();
+    return event;
+  };
+
+  const updateMemoryEvent = async (
+    id: string,
+    updates: Partial<Omit<MemoryEvent, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>> & {
+      profileSignals?: ProfileSignal[];
+    },
+  ): Promise<MemoryEvent | null> => {
+    const current = memoryEvents.find((event) => event.id === id);
+    if (!current) return null;
+    const next = {
+      ...current,
+      ...updates,
+      source: updates.source || current.source,
+      template: updates.template || current.template,
+      sensitivityLevel: updates.sensitivityLevel || current.sensitivityLevel,
+    };
+
+    if (OFFLINE_MODE || !user) {
+      const entry = memoryEventToEntry(next);
+      updateMemoryEntry(id, {
+        date: entry.date,
+        createdAt: entry.createdAt,
+        title: entry.title,
+        content: entry.content,
+        tags: entry.tags,
+        source: entry.source,
+        template: entry.template,
+        fields: entry.fields,
+      });
+      setMemoryEvents((prev) => prev.map((event) => (event.id === id ? next : event)));
+      return next;
+    }
+
+    const response = await fetch(`/api/memories/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(next),
+    });
+    if (!response.ok) {
+      const details = await response.text();
+      throw new Error(details || 'update memory failed');
+    }
+    const payload = await response.json();
+    const event = payload.memory as MemoryEvent;
+    setMemoryEvents((prev) => prev.map((item) => (item.id === id ? event : item)));
+    await refreshMemoryState();
+    return event;
+  };
+
+  const deleteMemoryEvent = async (id: string) => {
+    if (OFFLINE_MODE || !user) {
+      deleteMemoryEntry(id);
+      setMemoryEvents((prev) => prev.filter((event) => event.id !== id));
+      return;
+    }
+    const response = await fetch(`/api/memories/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (!response.ok) {
+      const details = await response.text();
+      throw new Error(details || 'delete memory failed');
+    }
+    setMemoryEvents((prev) => prev.filter((event) => event.id !== id));
+    await refreshMemoryState();
+  };
+
+  const togglePinnedMemoryEvent = async (id: string) => {
+    const current = memoryEvents.find((event) => event.id === id);
+    if (!current) return;
+    await updateMemoryEvent(id, { pinned: !current.pinned });
+  };
+
+  const updateMemorySettings = async (updates: Partial<MemorySettings>) => {
+    const nextSettings = { ...memorySettings, ...updates };
+    if (OFFLINE_MODE || !user) {
+      setMemorySettings(nextSettings);
+      return;
+    }
+    const response = await fetch('/api/memory/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ settings: nextSettings }),
+    });
+    if (!response.ok) {
+      const details = await response.text();
+      throw new Error(details || 'save memory settings failed');
+    }
+    const payload = await response.json();
+    setMemorySettings(payload.settings || nextSettings);
+    await refreshMemoryState();
+  };
+
+  const deleteProfileFact = async (id: string) => {
+    if (OFFLINE_MODE || !user) {
+      setProfileFacts((prev) => prev.filter((fact) => fact.id !== id));
+      return;
+    }
+    const response = await fetch(`/api/profile/facts/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (!response.ok) {
+      const details = await response.text();
+      throw new Error(details || 'delete profile fact failed');
+    }
+    setProfileFacts((prev) => prev.filter((fact) => fact.id !== id));
+    await refreshMemoryState();
+  };
+
   const applyAIInsights = (insight: AIInsightPayload, sourceMessage = '') => {
     const today = getTodayISO();
     const bodyEntry = insight.entries.body;
@@ -1885,13 +2208,19 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
     return { islands, todosAdded: predictedTodosAdded, memoriesAdded: predictedMemoriesAdded };
   };
 
-  const addTodo = (
-    todo: Omit<TodoItem, 'id' | 'autoPriorityScore' | 'priorityScore' | 'priorityLabel' | 'priorityReason'>,
-  ) => {
-    const normalizedTodo = normalizeTodoRecord({
-      ...todo,
+  const addTodo = (todo: TodoInput) => {
+    const { manualPriorityPreset, ...todoFields } = todo;
+    let normalizedTodo = normalizeTodoRecord({
+      ...todoFields,
       id: generateId(),
     });
+    if (manualPriorityPreset) {
+      const targetScore = TODO_PRIORITY_PRESET_TARGETS[manualPriorityPreset];
+      normalizedTodo = normalizeTodoRecord({
+        ...normalizedTodo,
+        priorityAdjustment: targetScore - (normalizedTodo.autoPriorityScore ?? 0),
+      });
+    }
     setProgress((prev) => {
       let next = {
         ...prev,
@@ -1964,6 +2293,21 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  const setTodoPriorityScore = (todoId: string, targetScore: number) => {
+    const nextTargetScore = clamp(Math.round(targetScore), 0, 100);
+    setProgress((prev) => ({
+      ...prev,
+      todos: prev.todos.map((todo) => {
+        if (todo.id !== todoId) return todo;
+        const normalized = normalizeTodoRecord(todo);
+        return normalizeTodoRecord({
+          ...normalized,
+          priorityAdjustment: nextTargetScore - (normalized.autoPriorityScore ?? 0),
+        });
+      }),
+    }));
+  };
+
   const toggleTodo = (todoId: string) => {
     setProgress((prev) => ({
       ...prev,
@@ -2014,6 +2358,11 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
     <MindIslandsContext.Provider
       value={{
         progress,
+        memoryEvents,
+        memorySettings,
+        profileFacts,
+        profileSummary,
+        memoryCloudLoaded,
         updateCharacterMood,
         updateIslandStreak,
         updateRoutineSettings,
@@ -2057,11 +2406,19 @@ export function MindIslandsProvider({ children }: { children: ReactNode }) {
         updateMemoryEntry,
         deleteMemoryEntry,
         togglePinnedMemoryTheme,
+        createMemoryEvent,
+        updateMemoryEvent,
+        deleteMemoryEvent,
+        togglePinnedMemoryEvent,
+        updateMemorySettings,
+        deleteProfileFact,
+        refreshMemoryState,
         applyAIInsights,
         addTodo,
         updateTodo,
         setTodoImportance,
         setTodoPriorityAdjustment,
+        setTodoPriorityScore,
         toggleTodo,
         deleteTodo,
         cleanupCompletedTodos,

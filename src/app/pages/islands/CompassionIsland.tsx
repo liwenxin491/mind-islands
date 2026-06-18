@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router';
-import { ArrowLeft, MessageCircle, Wind, BookHeart, Send, Sparkles, Pencil, Trash2 } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router';
+import { ArrowLeft, MessageCircle, Wind, BookHeart, Send, Sparkles, Pencil, Trash2, AlertTriangle, ExternalLink } from 'lucide-react';
 import { useMindIslands } from '../../context/MindIslandsContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
@@ -11,7 +11,121 @@ import { formatTime24, getDateKey, getNowInAppTimeZoneISO } from '../../lib/time
 
 const COMPASSION_CHAT_STORAGE_PREFIX = 'mindIslands:compassionChatHistory';
 
-const loadCompassionChatHistory = (storageKey: string) => {
+type HarborGuardrailLevel = 'support' | 'elevated' | 'dangerous_request' | 'crisis';
+type HarborGuardrailAction = 'comfort' | 'refuse' | 'handoff';
+type HarborInterventionType = 'dbt_abc' | 'grounding' | 'emotion_reflection';
+type HarborResourceKind = 'phone' | 'text' | 'link' | 'emergency';
+
+interface HarborGuardrail {
+  level: HarborGuardrailLevel;
+  action: HarborGuardrailAction;
+  shouldShowResourceCard: boolean;
+  reason?: string;
+}
+
+interface HarborIntervention {
+  type: HarborInterventionType;
+  title: string;
+  intro: string;
+  prompts: Array<{ label: string; question: string }>;
+  closingPrompt: string;
+}
+
+interface HarborResource {
+  label: string;
+  value: string;
+  kind: HarborResourceKind;
+}
+
+interface HarborChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+  guardrail?: HarborGuardrail;
+  intervention?: HarborIntervention | null;
+  resources?: HarborResource[];
+}
+
+interface HarborChatResponse {
+  reply?: string;
+  guardrail?: unknown;
+  intervention?: unknown;
+  resources?: unknown;
+}
+
+interface HarborLocationState {
+  quickLogHandoff?: {
+    message?: string;
+    level?: HarborGuardrailLevel;
+    createdAt?: string;
+  };
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value && typeof value === 'object');
+
+const isGuardrailLevel = (value: unknown): value is HarborGuardrailLevel =>
+  value === 'support' || value === 'elevated' || value === 'dangerous_request' || value === 'crisis';
+
+const isGuardrailAction = (value: unknown): value is HarborGuardrailAction =>
+  value === 'comfort' || value === 'refuse' || value === 'handoff';
+
+const isInterventionType = (value: unknown): value is HarborInterventionType =>
+  value === 'dbt_abc' || value === 'grounding' || value === 'emotion_reflection';
+
+const isResourceKind = (value: unknown): value is HarborResourceKind =>
+  value === 'phone' || value === 'text' || value === 'link' || value === 'emergency';
+
+const normalizeHarborGuardrail = (value: unknown): HarborGuardrail | undefined => {
+  if (!isRecord(value) || !isGuardrailLevel(value.level)) return undefined;
+  return {
+    level: value.level,
+    action: isGuardrailAction(value.action) ? value.action : 'comfort',
+    shouldShowResourceCard: Boolean(value.shouldShowResourceCard),
+    reason: typeof value.reason === 'string' ? value.reason : undefined,
+  };
+};
+
+const normalizeHarborIntervention = (value: unknown): HarborIntervention | null => {
+  if (!isRecord(value) || !isInterventionType(value.type)) return null;
+  const prompts = Array.isArray(value.prompts)
+    ? value.prompts
+        .map((prompt) => {
+          if (!isRecord(prompt)) return null;
+          const label = typeof prompt.label === 'string' ? prompt.label.trim() : '';
+          const question = typeof prompt.question === 'string' ? prompt.question.trim() : '';
+          return label && question ? { label, question } : null;
+        })
+        .filter((prompt): prompt is { label: string; question: string } => Boolean(prompt))
+        .slice(0, 4)
+    : [];
+  if (prompts.length === 0) return null;
+
+  return {
+    type: value.type,
+    title: typeof value.title === 'string' ? value.title : '',
+    intro: typeof value.intro === 'string' ? value.intro : '',
+    prompts,
+    closingPrompt: typeof value.closingPrompt === 'string' ? value.closingPrompt : '',
+  };
+};
+
+const normalizeHarborResources = (value: unknown): HarborResource[] => {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((resource) => {
+      if (!isRecord(resource)) return null;
+      const label = typeof resource.label === 'string' ? resource.label.trim() : '';
+      const itemValue = typeof resource.value === 'string' ? resource.value.trim() : '';
+      const kind = isResourceKind(resource.kind) ? resource.kind : 'link';
+      return label && itemValue ? { label, value: itemValue, kind } : null;
+    })
+    .filter((resource): resource is HarborResource => Boolean(resource))
+    .slice(0, 6);
+};
+
+const loadCompassionChatHistory = (storageKey: string): HarborChatMessage[] => {
   try {
     const raw = localStorage.getItem(storageKey);
     if (!raw) return [];
@@ -26,6 +140,9 @@ const loadCompassionChatHistory = (storageKey: string) => {
           typeof item?.timestamp === 'string' && item.timestamp
             ? item.timestamp
             : getNowInAppTimeZoneISO(),
+        guardrail: normalizeHarborGuardrail(item?.guardrail),
+        intervention: normalizeHarborIntervention(item?.intervention),
+        resources: normalizeHarborResources(item?.resources),
       }))
       .filter((item) => item.content.trim().length > 0)
       .slice(-200);
@@ -36,6 +153,7 @@ const loadCompassionChatHistory = (storageKey: string) => {
 
 export function CompassionIsland() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { language, t } = useLanguage();
   const { user } = useAuth();
   const {
@@ -45,6 +163,8 @@ export function CompassionIsland() {
     deleteCompassionJournal,
     addBreathingSession,
     addMemoryEntry,
+    profileSummary,
+    memorySettings,
   } = useMindIslands();
   const [activeTab, setActiveTab] = useState<'chat' | 'breathe' | 'journal'>('chat');
   const [showSuccess, setShowSuccess] = useState(false);
@@ -61,13 +181,9 @@ export function CompassionIsland() {
   const [chatInput, setChatInput] = useState('');
   const [isChatSending, setIsChatSending] = useState(false);
   const [apiStatus, setApiStatus] = useState<'checking' | 'ready' | 'offline'>('checking');
-  const [chatHistory, setChatHistory] = useState<Array<{
-    id: string;
-    role: 'user' | 'assistant';
-    content: string;
-    timestamp: string;
-  }>>([]);
+  const [chatHistory, setChatHistory] = useState<HarborChatMessage[]>([]);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const consumedQuickLogHandoffRef = useRef<string | null>(null);
   const compassionChatStorageKey = `${COMPASSION_CHAT_STORAGE_PREFIX}:${user?.id || 'anonymous'}:v1`;
 
   const clip = (value?: string, max = 160) => {
@@ -78,60 +194,6 @@ export function CompassionIsland() {
   };
 
   const compassionContext = useMemo(() => {
-    const byDateDesc = <T extends { date: string }>(items: T[]) =>
-      [...items].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-    const recentHealth = byDateDesc(progress.healthCheckIns).slice(0, 4).map((item) => ({
-      date: item.date,
-      sleepTime: item.sleepTime,
-      wakeTime: item.wakeTime,
-      workoutCompleted: item.workoutCompleted,
-      workoutType: item.workoutType,
-      workoutDuration: item.workoutDuration,
-      energyLevel: item.energyLevel,
-      notes: clip(item.notes, 120),
-    }));
-
-    const recentWork = byDateDesc(progress.workDailyLogs).slice(0, 4).map((item) => ({
-      date: item.date,
-      progressStep: clip(item.progressStep, 140),
-      stressLevel: item.stressLevel,
-      todaysWin: clip(item.todaysWin, 120),
-    }));
-
-    const recentLearning = byDateDesc(progress.learningDailyLogs).slice(0, 4).map((item) => ({
-      date: item.date,
-      focusedStudyMinutes: item.focusedStudyMinutes,
-      whatILearned: clip(item.whatILearned, 140),
-    }));
-
-    const recentRelationships = byDateDesc(progress.relationshipLogs).slice(0, 4).map((item) => ({
-      date: item.date,
-      category: item.category,
-      emotionalResult: item.emotionalResult,
-      momentNote: clip(item.momentNote, 140),
-      gratitudeNote: clip(item.gratitudeNote, 120),
-    }));
-
-    const recentCuriosity = byDateDesc(progress.curiosityLogs).slice(0, 4).map((item) => ({
-      date: item.date,
-      newThingNoticed: clip(item.newThingNoticed, 140),
-      newSkillOrFact: clip(item.newSkillOrFact, 120),
-    }));
-    const recentCuriosityIdeas = byDateDesc(progress.curiosityIdeas).slice(0, 4).map((item) => ({
-      date: item.date,
-      title: clip(item.title, 100),
-      content: clip(item.content, 160),
-      tags: item.tags || [],
-    }));
-
-    const recentCompassion = byDateDesc(progress.compassionJournals).slice(0, 5).map((item) => ({
-      date: item.date,
-      mood: item.mood,
-      reflectionPrompt: clip(item.reflectionPrompt, 100),
-      journalEntry: clip(item.journalEntry, 160),
-    }));
-
     const pendingTodos = progress.todos
       .filter((item) => !item.completed)
       .slice(0, 6)
@@ -151,17 +213,15 @@ export function CompassionIsland() {
         .filter((item) => item.completedToday)
         .map((item) => item.id),
       pendingTodos,
-      recentRecords: {
-        body: recentHealth,
-        work: recentWork,
-        learning: recentLearning,
-        relationships: recentRelationships,
-        curiosity: recentCuriosity,
-        curiosityIdeas: recentCuriosityIdeas,
-        compassion: recentCompassion,
+      memoryProfilePreview: {
+        enabled: memorySettings.aiPersonalizationEnabled && memorySettings.harborMemoryEnabled,
+        knownStressors: profileSummary?.knownStressors?.slice(0, 3) || [],
+        helpfulSupportStyle: profileSummary?.helpfulSupportStyle?.slice(0, 3) || [],
+        copingStrategies: profileSummary?.copingStrategies?.slice(0, 3) || [],
+        pinnedMemories: profileSummary?.pinnedMemories?.slice(0, 3) || [],
       },
     };
-  }, [progress, today]);
+  }, [memorySettings.aiPersonalizationEnabled, memorySettings.harborMemoryEnabled, profileSummary, progress, today]);
 
   // Breathing state
   const [breathingActive, setBreathingActive] = useState(false);
@@ -185,8 +245,8 @@ export function CompassionIsland() {
     "What small win can I celebrate today?",
   ];
 
-  const handleSendMessage = async () => {
-    const trimmed = chatInput.trim();
+  const handleSendMessage = async (messageOverride?: string) => {
+    const trimmed = (messageOverride ?? chatInput).trim();
     if (!trimmed || isChatSending) return;
 
     const userMessage = {
@@ -222,7 +282,7 @@ export function CompassionIsland() {
       }
       setApiStatus('ready');
 
-      const result = (await response.json()) as { reply?: string };
+      const result = (await response.json()) as HarborChatResponse;
       const assistantMessage = {
         id: `local-${Date.now()}-a`,
         role: 'assistant' as const,
@@ -233,6 +293,9 @@ export function CompassionIsland() {
             '我听见自己了。现在做一个温和的小步骤就已经足够。',
           ),
         timestamp: getNowInAppTimeZoneISO(),
+        guardrail: normalizeHarborGuardrail(result.guardrail),
+        intervention: normalizeHarborIntervention(result.intervention),
+        resources: normalizeHarborResources(result.resources),
       };
       setChatHistory((prev) => [...prev, assistantMessage]);
     } catch (error) {
@@ -358,6 +421,24 @@ export function CompassionIsland() {
   }, [compassionChatStorageKey]);
 
   useEffect(() => {
+    const state = location.state as HarborLocationState | null;
+    const handoff = state?.quickLogHandoff;
+    const handoffMessage = handoff?.message?.trim();
+    if (!handoffMessage) return;
+
+    const key = `${handoff.createdAt || 'handoff'}:${handoffMessage}`;
+    if (consumedQuickLogHandoffRef.current === key) return;
+    consumedQuickLogHandoffRef.current = key;
+    setActiveTab('chat');
+    window.setTimeout(() => {
+      void handleSendMessage(handoffMessage);
+    }, 0);
+    navigate(location.pathname, { replace: true, state: null });
+    // This effect should only react to a route-level Quick Log handoff.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, location.state, navigate]);
+
+  useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatHistory]);
 
@@ -428,6 +509,74 @@ export function CompassionIsland() {
       mood: todayJournal?.mood || 3,
     });
   }, [activeTab, todayJournal?.id, editingJournalId]);
+
+  const getResourceHref = (resource: HarborResource) => {
+    if (resource.kind === 'phone') return `tel:${resource.value.replace(/[^\d+]/g, '') || resource.value}`;
+    if (resource.kind === 'text') return `sms:${resource.value.replace(/[^\d+]/g, '') || resource.value}`;
+    if (resource.kind === 'link') return resource.value;
+    return '';
+  };
+
+  const renderSupportResourceCard = (resources: HarborResource[]) => (
+    <div className="mt-2 rounded-xl border border-rose-200 bg-rose-50/90 p-3 text-slate-800 shadow-sm">
+      <div className="mb-2 flex items-center gap-2 text-sm font-medium text-rose-800">
+        <AlertTriangle className="h-4 w-4" />
+        {t('Human support is important right now', '现在需要真人支持')}
+      </div>
+      <div className="space-y-2">
+        {resources.map((resource, index) => {
+          const href = getResourceHref(resource);
+          const key = `${resource.kind}-${resource.value}-${index}`;
+          if (!href) {
+            return (
+              <div key={key} className="rounded-lg bg-white/70 px-3 py-2 text-xs text-slate-700">
+                <div className="font-medium text-slate-800">{resource.label}</div>
+                <div>{resource.value}</div>
+              </div>
+            );
+          }
+          return (
+            <a
+              key={key}
+              href={href}
+              target={resource.kind === 'link' ? '_blank' : undefined}
+              rel={resource.kind === 'link' ? 'noreferrer' : undefined}
+              className="flex items-center justify-between gap-2 rounded-lg bg-white/75 px-3 py-2 text-xs text-slate-700 transition-colors hover:bg-white"
+            >
+              <span>
+                <span className="block font-medium text-slate-800">{resource.label}</span>
+                <span className="break-all">{resource.value}</span>
+              </span>
+              {resource.kind === 'link' && <ExternalLink className="h-3.5 w-3.5 shrink-0" />}
+            </a>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const renderInterventionCard = (intervention: HarborIntervention) => (
+    <div className="mt-2 rounded-xl border border-[#b8d2d7] bg-white/80 p-3 text-slate-800 shadow-sm">
+      <div className="mb-2 flex items-center gap-2 text-sm font-medium text-[#527a84]">
+        <Sparkles className="h-4 w-4" />
+        {intervention.title || t('A tiny support card', '一张很小的支持卡')}
+      </div>
+      {intervention.intro && <p className="mb-3 text-xs text-slate-600">{intervention.intro}</p>}
+      <div className="space-y-2">
+        {intervention.prompts.map((prompt, index) => (
+          <div key={`${prompt.label}-${index}`} className="rounded-lg bg-[#eef6f7] px-3 py-2 text-xs">
+            <span className="mr-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#6b98a2] px-1.5 text-[11px] font-semibold text-white">
+              {prompt.label}
+            </span>
+            <span className="text-slate-700">{prompt.question}</span>
+          </div>
+        ))}
+      </div>
+      {intervention.closingPrompt && (
+        <p className="mt-3 text-xs font-medium text-[#527a84]">{intervention.closingPrompt}</p>
+      )}
+    </div>
+  );
 
   return (
     <SceneShell>
@@ -534,25 +683,42 @@ export function CompassionIsland() {
                 </div>
               ) : (
                 <>
-                  {chatHistory.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
+                  {chatHistory.map((message) => {
+                    const resources =
+                      message.guardrail?.shouldShowResourceCard && message.resources
+                        ? message.resources
+                        : [];
+                    const showResources = message.role === 'assistant' && resources.length > 0;
+                    const showIntervention = message.role === 'assistant' && Boolean(message.intervention);
+
+                    return (
                       <div
-                        className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                          message.role === 'user'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-[#e6eff1] border border-[#c5dade] text-slate-800'
-                        }`}
+                        key={message.id}
+                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                       >
-                        <p className="text-sm">{message.content}</p>
-                        <p className="text-xs opacity-60 mt-1">
-                          {formatTime24(message.timestamp)}
-                        </p>
+                        <div
+                          className={`flex max-w-[80%] flex-col ${
+                            message.role === 'user' ? 'items-end' : 'items-start'
+                          }`}
+                        >
+                          <div
+                            className={`rounded-2xl px-4 py-3 ${
+                              message.role === 'user'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-[#e6eff1] border border-[#c5dade] text-slate-800'
+                            }`}
+                          >
+                            <p className="text-sm">{message.content}</p>
+                            <p className="text-xs opacity-60 mt-1">
+                              {formatTime24(message.timestamp)}
+                            </p>
+                          </div>
+                          {showResources && renderSupportResourceCard(resources)}
+                          {showIntervention && message.intervention && renderInterventionCard(message.intervention)}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   <div ref={chatEndRef} />
                 </>
               )}

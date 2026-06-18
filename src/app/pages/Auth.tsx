@@ -9,17 +9,39 @@ type AuthMode = 'login' | 'register';
 
 export function AuthPage() {
   const { t } = useLanguage();
-  const { login, register, setupError } = useAuth();
+  const { login, register, sendVerificationCode, setupError } = useAuth();
   const [mode, setMode] = useState<AuthMode>('login');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false);
+  const [devCode, setDevCode] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     setError('');
+    setVerificationCode('');
+    setVerificationSent(false);
+    setDevCode('');
   }, [mode]);
+
+  const onSendCode = async () => {
+    setSendingCode(true);
+    setError('');
+    setDevCode('');
+
+    const result = await sendVerificationCode(username.trim(), email.trim());
+    if (!result.ok) {
+      setError(result.error || t('Could not send verification code.', '无法发送验证码。'));
+    } else {
+      setVerificationSent(true);
+      if (result.devCode) setDevCode(result.devCode);
+    }
+    setSendingCode(false);
+  };
 
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -29,7 +51,7 @@ export function AuthPage() {
     const result =
       mode === 'login'
         ? await login(email.trim(), password)
-        : await register(username.trim(), email.trim(), password);
+        : await register(username.trim(), email.trim(), password, verificationCode.trim());
     if (!result.ok) {
       setError(result.error || t('Request failed.', '请求失败。'));
     }
@@ -123,15 +145,56 @@ export function AuthPage() {
             )}
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700">{t('Email', '邮箱')}</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full rounded-2xl border border-white/50 bg-white/70 px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#6b98a2]/60 focus:ring-2 focus:ring-[#6b98a2]/20"
-                required
-              />
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setVerificationSent(false);
+                    setVerificationCode('');
+                    setDevCode('');
+                  }}
+                  placeholder="you@example.com"
+                  className="min-w-0 flex-1 rounded-2xl border border-white/50 bg-white/70 px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#6b98a2]/60 focus:ring-2 focus:ring-[#6b98a2]/20"
+                  required
+                />
+                {mode === 'register' && (
+                  <Button
+                    type="button"
+                    onClick={onSendCode}
+                    disabled={sendingCode || !email.trim()}
+                    className="shrink-0 rounded-2xl bg-[#3f747f] px-4 text-white hover:bg-[#356773]"
+                  >
+                    {sendingCode ? t('Sending', '发送中') : t('Send', '发送')}
+                  </Button>
+                )}
+              </div>
             </div>
+            {mode === 'register' && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">
+                  {t('Verification code', '邮箱验证码')}
+                </label>
+                <input
+                  inputMode="numeric"
+                  pattern="[0-9]{6}"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder={verificationSent ? '123456' : t('Send code first', '请先发送验证码')}
+                  className="w-full rounded-2xl border border-white/50 bg-white/70 px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#6b98a2]/60 focus:ring-2 focus:ring-[#6b98a2]/20"
+                  required
+                  minLength={6}
+                  maxLength={6}
+                />
+                {verificationSent && (
+                  <p className="text-xs text-slate-600">
+                    {t('Code sent. It expires in 10 minutes.', '验证码已发送，10 分钟内有效。')}
+                    {devCode ? ` ${t('Dev code:', '开发验证码：')} ${devCode}` : ''}
+                  </p>
+                )}
+              </div>
+            )}
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700">{t('Password', '密码')}</label>
               <input

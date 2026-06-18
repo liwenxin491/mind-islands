@@ -225,6 +225,77 @@ export interface MemoryEntry {
   fields?: MemoryEntryFields;
 }
 
+export type MemorySensitivityLevel = 'normal' | 'sensitive';
+export type ProfileSignalCategory =
+  | 'stressor'
+  | 'goal'
+  | 'routine'
+  | 'support_style'
+  | 'coping_strategy'
+  | 'relationship_theme'
+  | 'tone_preference'
+  | 'identity'
+  | 'interest';
+
+export interface ProfileSignal {
+  category: ProfileSignalCategory;
+  value: string;
+  confidence: number;
+  evidence?: string;
+  sensitivity?: MemorySensitivityLevel;
+}
+
+export interface MemoryEvent {
+  id: string;
+  source: MemorySource;
+  title: string;
+  content: string;
+  tags: string[];
+  islands: IslandType[];
+  template: MemoryTemplate;
+  fields?: MemoryEntryFields;
+  pinned: boolean;
+  sensitivityLevel: MemorySensitivityLevel;
+  sourceMessage?: string;
+  legacyKey?: string;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string;
+}
+
+export interface MemorySettings {
+  saveMemoriesEnabled: boolean;
+  profileLearningEnabled: boolean;
+  aiPersonalizationEnabled: boolean;
+  harborMemoryEnabled: boolean;
+}
+
+export interface UserProfileFact {
+  id: string;
+  category: ProfileSignalCategory;
+  value: string;
+  confidence: number;
+  evidenceMemoryIds: string[];
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+  retractedAt?: string;
+}
+
+export interface UserProfileSummary {
+  knownStressors: Array<{ id: string; value: string; confidence: number; evidenceMemoryIds: string[] }>;
+  goals: Array<{ id: string; value: string; confidence: number; evidenceMemoryIds: string[] }>;
+  routines: Array<{ id: string; value: string; confidence: number; evidenceMemoryIds: string[] }>;
+  helpfulSupportStyle: Array<{ id: string; value: string; confidence: number; evidenceMemoryIds: string[] }>;
+  copingStrategies: Array<{ id: string; value: string; confidence: number; evidenceMemoryIds: string[] }>;
+  relationshipThemes: Array<{ id: string; value: string; confidence: number; evidenceMemoryIds: string[] }>;
+  tonePreferences: Array<{ id: string; value: string; confidence: number; evidenceMemoryIds: string[] }>;
+  identityContext: Array<{ id: string; value: string; confidence: number; evidenceMemoryIds: string[] }>;
+  interests: Array<{ id: string; value: string; confidence: number; evidenceMemoryIds: string[] }>;
+  pinnedMemories: Array<{ id: string; title: string; content: string; tags: string[] }>;
+  recentMilestones: Array<{ id: string; title: string; content: string; tags: string[] }>;
+}
+
 // Character System
 export interface CharacterState {
   mood: CharacterMood;
@@ -272,6 +343,19 @@ export interface AIInsightPayload {
   detectedIslands: IslandType[];
   needsFollowup: boolean;
   followupQuestion?: string;
+  quickLogPreview?: {
+    summary: string;
+    target: 'memory' | 'todo' | 'harbor' | 'followup' | 'entry';
+    confidence: number;
+  };
+  profileSignals?: ProfileSignal[];
+  supportHandoff?: {
+    destination: 'harbor';
+    level: 'support' | 'elevated' | 'dangerous_request' | 'crisis';
+    title: string;
+    message: string;
+    ctaLabel: string;
+  };
   todos?: Array<{
     text: string;
     details?: string;
